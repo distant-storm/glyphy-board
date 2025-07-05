@@ -14,35 +14,21 @@ import sys
 import random
 import argparse
 import warnings
+import logging
 from datetime import datetime
 from pathlib import Path
 
-# Store original working directory
-original_cwd = os.getcwd()
+# Suppress warning from inky library
+warnings.filterwarnings("ignore", message=".*Busy Wait: Held high.*")
 
-try:
-    # Add src directory to Python path and change to it
-    src_dir = Path(__file__).parent.parent / "src"
-    sys.path.insert(0, str(src_dir))
-    os.chdir(str(src_dir))
-    
-    # Suppress warning from inky library
-    warnings.filterwarnings("ignore", message=".*Busy Wait: Held high.*")
-    
-    # Import after changing directory to handle relative imports
-    from PIL import Image, ImageOps, ImageColor
-    from config import Config
-    from display.display_manager import DisplayManager
-    
-    # Set up simple logging
-    import logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger(__name__)
-    
-except ImportError as e:
-    print(f"Import error: {e}")
-    print("This script requires the full InkyPi environment to be installed.")
-    sys.exit(1)
+# Import modules (now they're in the same directory structure)
+from PIL import Image, ImageOps, ImageColor
+from config import Config
+from display.display_manager import DisplayManager
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def get_supported_image_extensions():
     """Get list of supported image file extensions"""
@@ -117,17 +103,17 @@ def main():
         logger.info(f"=== Photo Album Board Script Executed ===")
         logger.info(f"Current time: {current_time}")
         
-        # Get the photos directory (relative to original script location)
-        script_dir = Path(original_cwd) / "boards" / "photo-album"
+        # Get the photos directory (relative to this script)
+        script_dir = Path(__file__).parent
         photos_dir = script_dir / "photos"
         
         # Determine which image to use
         if args.image_path:
-            # Use provided image path (convert to absolute path from original cwd)
-            if os.path.isabs(args.image_path):
-                image_path = Path(args.image_path)
-            else:
-                image_path = Path(original_cwd) / args.image_path
+            # Use provided image path
+            image_path = Path(args.image_path)
+            if not image_path.is_absolute():
+                # Make relative paths relative to the project root
+                image_path = Path.cwd() / args.image_path
                 
             if not image_path.exists():
                 logger.error(f"Image file not found: {image_path}")

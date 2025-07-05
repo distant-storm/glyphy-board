@@ -5,7 +5,7 @@ This directory contains board scripts organized into their own subdirectories. E
 ## Directory Structure
 
 ```
-boards/
+src/boards/
 ├── daily-board/
 │   └── daily-board.py         # Daily schedule board script
 ├── test-board/
@@ -28,7 +28,7 @@ Simple board that displays daily schedule information.
 
 **Usage:**
 ```bash
-python3 boards/daily-board/daily-board.py
+python3 src/boards/daily-board/daily-board.py
 ```
 
 ### Test Board (`test-board`)
@@ -36,7 +36,7 @@ Test board for verification and debugging.
 
 **Usage:**
 ```bash
-python3 boards/test-board/test-board.py
+python3 src/boards/test-board/test-board.py
 ```
 
 ### Dashboard (`dashboard`)
@@ -44,7 +44,7 @@ Default dashboard display shown when no schedule is active.
 
 **Usage:**
 ```bash
-python3 boards/dashboard/dashboard.py
+python3 src/boards/dashboard/dashboard.py
 ```
 
 ### Image Board (`image`)
@@ -52,7 +52,7 @@ Displays a single specified image on the eink screen.
 
 **Usage:**
 ```bash
-python3 boards/image/image.py path/to/image.jpg [--pad] [--background-color COLOR]
+python3 src/boards/image/image.py path/to/image.jpg [--pad] [--background-color COLOR]
 ```
 
 **Options:**
@@ -65,17 +65,17 @@ Displays images from the photos directory. If no image is specified, randomly se
 **Usage:**
 ```bash
 # Random photo from photos directory
-python3 boards/photo-album/photo-album.py
+python3 src/boards/photo-album/photo-album.py
 
 # Specific photo
-python3 boards/photo-album/photo-album.py path/to/photo.jpg
+python3 src/boards/photo-album/photo-album.py path/to/photo.jpg
 
 # With options
-python3 boards/photo-album/photo-album.py --pad --background-color black
+python3 src/boards/photo-album/photo-album.py --pad --background-color black
 ```
 
 **Setup:**
-1. Add your image files to `boards/photo-album/photos/`
+1. Add your image files to `src/boards/photo-album/photos/`
 2. Supported formats: .jpg, .jpeg, .png, .bmp, .gif, .tiff, .tif, .webp
 3. Run without arguments to display a random photo
 
@@ -85,13 +85,13 @@ To create a new board:
 
 1. **Create Directory:**
    ```bash
-   mkdir boards/my-new-board
+   mkdir src/boards/my-new-board
    ```
 
 2. **Create Script:**
    ```bash
-   touch boards/my-new-board/my-new-board.py
-   chmod +x boards/my-new-board/my-new-board.py
+   touch src/boards/my-new-board/my-new-board.py
+   chmod +x src/boards/my-new-board/my-new-board.py
    ```
 
 3. **Basic Template:**
@@ -102,22 +102,39 @@ To create a new board:
    """
    
    import sys
+   import logging
    from datetime import datetime
+   from config import Config
+   from display.display_manager import DisplayManager
+   
+   # Set up logging
+   logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+   logger = logging.getLogger(__name__)
    
    def main():
        """Main function for board display"""
        current_time = datetime.now()
        
-       print(f"=== My New Board Script Executed ===")
-       print(f"Current time: {current_time}")
+       logger.info(f"=== My New Board Script Executed ===")
+       logger.info(f"Current time: {current_time}")
        
        # Your board logic here:
-       # 1. Load display manager
+       # 1. Load configuration and display manager
        # 2. Create image content  
        # 3. Display on eink screen
        
-       print("Board content displayed successfully!")
-       return 0
+       try:
+           device_config = Config()
+           display_manager = DisplayManager(device_config)
+           
+           # Create your image here
+           # display_manager.display_image(your_image)
+           
+           logger.info("Board content displayed successfully!")
+           return 0
+       except Exception as e:
+           logger.error(f"Error: {e}")
+           return 1
    
    if __name__ == "__main__":
        sys.exit(main())
@@ -126,31 +143,44 @@ To create a new board:
 4. **Add to Scheduler:**
    - Create schedule through web UI (`/schedules`)
    - Add schedule item with board name: `my-new-board`
-   - Scheduler will automatically find and execute `boards/my-new-board/my-new-board.py`
+   - Scheduler will automatically find and execute `src/boards/my-new-board/my-new-board.py`
 
 ## Integration with Scheduler
 
 The scheduler automatically finds and executes board scripts using this pattern:
 - Board name: `my-board`
-- Script path: `boards/my-board/my-board.py`
+- Script path: `src/boards/my-board/my-board.py`
 
 This allows each board to have:
 - Its own directory for organization
 - Supporting files (images, configs, etc.)
 - Clear separation from other boards
+- Easy access to all InkyPi modules and configuration
+
+## Import Structure
+
+Since boards are now inside the `src/` directory, they can directly import InkyPi modules:
+
+```python
+from config import Config
+from display.display_manager import DisplayManager
+from utils.app_utils import get_font
+```
+
+No complex path manipulation is needed - everything is in the same module structure.
 
 ## Testing Boards
 
 Test individual boards manually:
 ```bash
 # Test daily board
-python3 boards/daily-board/daily-board.py
+python3 src/boards/daily-board/daily-board.py
 
 # Test photo album (random)
-python3 boards/photo-album/photo-album.py
+python3 src/boards/photo-album/photo-album.py
 
 # Test image display
-python3 boards/image/image.py path/to/image.jpg --pad
+python3 src/boards/image/image.py path/to/image.jpg --pad
 ```
 
 Test with scheduler:

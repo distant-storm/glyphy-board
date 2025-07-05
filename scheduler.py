@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class ScheduleEngine:
     def __init__(self):
         self.data_dir = Path("data")
-        self.boards_dir = Path("boards")
+        self.boards_dir = Path("src") / "boards"
         self.schedules_file = self.data_dir / "schedules.json"
         self.schedule_items_file = self.data_dir / "schedule-items.json"
         

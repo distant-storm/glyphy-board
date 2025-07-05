@@ -3,17 +3,8 @@
 import os
 import sys
 import logging
-import logging.config
 import warnings
 from pathlib import Path
-
-# Add src directory to Python path
-src_dir = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_dir))
-
-# Also add the project root to handle cross-module imports
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
 
 # Suppress warning from inky library
 warnings.filterwarnings("ignore", message=".*Busy Wait: Held high.*")
