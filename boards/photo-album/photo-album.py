@@ -17,41 +17,23 @@ import random
 import argparse
 import logging
 import logging.config
+import warnings
 from pathlib import Path
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageColor
 
-# Add the project root to the path to access src modules
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root / "src"))
+# Add src directory to Python path
+src_dir = Path(__file__).parent.parent / "src"
+sys.path.insert(0, str(src_dir))
 
-from utils.display_manager import DisplayManager
+# Set up logging
+logging.config.fileConfig(src_dir / 'config' / 'logging.conf')
 
-# Setup logging
-LOGGING_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'standard': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        },
-    },
-    'handlers': {
-        'default': {
-            'level': 'INFO',
-            'formatter': 'standard',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        '': {
-            'handlers': ['default'],
-            'level': 'INFO',
-            'propagate': False
-        }
-    }
-}
+# Suppress warning from inky library
+warnings.filterwarnings("ignore", message=".*Busy Wait: Held high.*")
 
-logging.config.dictConfig(LOGGING_CONFIG)
+from config import Config
+from display.display_manager import DisplayManager
+
 logger = logging.getLogger(__name__)
 
 def get_supported_image_extensions():
@@ -83,11 +65,12 @@ def find_random_photo(photos_dir):
     logger.info(f"Randomly selected photo: {selected_image.name}")
     return selected_image
 
-def load_and_process_image(image_path, target_size, pad_to_fit=False, background_color='white'):
+def load_and_process_image(image_path, pad_to_fit=False, background_color='white'):
     """Load and process image for display"""
     try:
         # Open and convert image
         image = Image.open(image_path)
+        logger.info(f"Successfully loaded image: {image_path}")
         
         # Convert to RGB if necessary
         if image.mode != 'RGB':
@@ -98,13 +81,24 @@ def load_and_process_image(image_path, target_size, pad_to_fit=False, background
         logger.info(f"Original image size: {original_size}")
         
         if pad_to_fit:
-            # Pad image to fit display while maintaining aspect ratio
-            logger.info("Padding image to fit display dimensions")
-            image = ImageOps.pad(image, target_size, color=background_color)
-        else:
-            # Resize image to fit display
-            logger.info("Resizing image to fit display dimensions")
-            image = ImageOps.fit(image, target_size, Image.Resampling.LANCZOS)
+            # Get device config and dimensions
+            device_config = Config()
+            dimensions = device_config.get_resolution()
+            if device_config.get_config("orientation") == "vertical":
+                dimensions = dimensions[::-1]
+            
+            # Calculate padded size
+            frame_ratio = dimensions[0] / dimensions[1]
+            img_width, img_height = image.size
+            padded_img_size = (
+                int(img_height * frame_ratio) if img_width >= img_height else img_width,
+                img_height if img_width >= img_height else int(img_width / frame_ratio)
+            )
+            
+            # Apply padding
+            bg_color = ImageColor.getcolor(background_color, "RGB")
+            image = ImageOps.pad(image, padded_img_size, color=bg_color, method=Image.Resampling.LANCZOS)
+            logger.info(f"Applied padding with background color: {background_color}")
         
         logger.info(f"Final image size: {image.size}")
         return image
@@ -142,19 +136,14 @@ def main():
                 logger.error("No photo could be selected")
                 return 1
         
-        # Initialize display manager
-        logger.info("Initializing display manager...")
-        display_manager = DisplayManager()
-        
-        # Get display dimensions
-        width, height = display_manager.get_display_size()
-        logger.info(f"Display size: {width}x{height}")
+        # Initialize configuration and display manager
+        device_config = Config()
+        display_manager = DisplayManager(device_config)
         
         # Load and process the image
         logger.info(f"Loading image: {image_path}")
         processed_image = load_and_process_image(
             image_path, 
-            (width, height), 
             args.pad, 
             args.background_color
         )
