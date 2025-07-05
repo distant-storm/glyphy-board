@@ -33,34 +33,25 @@ from display.display_manager import DisplayManager
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def get_supported_image_extensions():
-    """Get list of supported image file extensions"""
-    return {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.tif', '.webp'}
-
-def find_random_photo(photos_dir):
-    """Find a random photo from the photos directory"""
+def get_random_photo(photos_dir):
+    """Get a random photo from the photos directory"""
+    supported_formats = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.tif', '.webp']
+    
     photos_path = Path(photos_dir)
-    
     if not photos_path.exists():
-        logger.error(f"Photos directory not found: {photos_path}")
-        return None
+        raise FileNotFoundError(f"Photos directory not found: {photos_path}")
     
-    # Get all image files from the photos directory
-    supported_extensions = get_supported_image_extensions()
-    image_files = []
-    
+    photo_files = []
     for file_path in photos_path.iterdir():
-        if file_path.is_file() and file_path.suffix.lower() in supported_extensions:
-            image_files.append(file_path)
+        if file_path.is_file() and file_path.suffix.lower() in supported_formats:
+            photo_files.append(str(file_path))
     
-    if not image_files:
-        logger.error(f"No image files found in {photos_path}")
-        return None
+    if not photo_files:
+        raise FileNotFoundError(f"No photos found in {photos_path}. Supported formats: {supported_formats}")
     
-    # Select random image
-    selected_image = random.choice(image_files)
-    logger.info(f"Randomly selected photo: {selected_image.name}")
-    return selected_image
+    selected_photo = random.choice(photo_files)
+    logger.info(f"Selected random photo: {Path(selected_photo).name} from {len(photo_files)} available photos")
+    return selected_photo
 
 def process_image_like_upload_plugin(image, device_config, pad_image=False, background_color="#ffffff"):
     """Process image exactly like the image_upload plugin does"""
@@ -94,10 +85,10 @@ def process_image_like_upload_plugin(image, device_config, pad_image=False, back
 
 def main():
     """Main function to display photo album"""
-    parser = argparse.ArgumentParser(description='Display image on eink screen from photo album')
-    parser.add_argument('image_path', nargs='?', help='Path to image file (optional - if not provided, selects random photo)')
-    parser.add_argument('--pad', action='store_true', help='Pad image to fit screen while maintaining aspect ratio')
-    parser.add_argument('--background-color', default='#ffffff', help='Background color for padding (default: white)')
+    parser = argparse.ArgumentParser(description='Display a random photo from the photo album on the eink display')
+    parser.add_argument('image_path', nargs='?', help='Path to specific image file (optional)')
+    parser.add_argument('--pad', action='store_true', help='Pad the image to fit the screen while maintaining aspect ratio')
+    parser.add_argument('--background-color', default='white', help='Background color for padding (default: white)')
     
     args = parser.parse_args()
     
@@ -106,60 +97,33 @@ def main():
         logger.info(f"=== Photo Album Board Script Executed ===")
         logger.info(f"Current time: {current_time}")
         
-        # Get the photos directory (relative to this script)
-        script_dir = Path(__file__).parent
-        photos_dir = script_dir / "photos"
+        # Get the photos directory relative to this script
+        photos_dir = Path(__file__).parent / 'photos'
+        logger.info(f"Photos directory: {photos_dir.absolute()}")
         
         # Determine which image to use
         if args.image_path:
-            # Use provided image path
-            image_path = Path(args.image_path)
-            if not image_path.is_absolute():
-                # Make relative paths relative to the project root
-                image_path = Path.cwd() / args.image_path
-                
-            if not image_path.exists():
-                logger.error(f"Image file not found: {image_path}")
-                return 1
-            logger.info(f"Using provided image: {image_path}")
+            image_path = args.image_path
+            logger.info(f"Using specified image: {image_path}")
         else:
-            # Select random photo from photos directory
-            image_path = find_random_photo(photos_dir)
-            if not image_path:
-                logger.error("No photo could be selected")
-                return 1
+            image_path = get_random_photo(photos_dir)
+            logger.info(f"Selected random photo: {image_path}")
         
-        # Initialize configuration and display manager (same as image_upload plugin)
-        device_config = Config()
-        display_manager = DisplayManager(device_config)
+        # Display the image
+        config = Config()
+        display_manager = DisplayManager(config)
         
-        # Load and open the image
-        logger.info(f"Loading image: {image_path}")
-        try:
-            image = Image.open(image_path)
-            logger.info(f"Successfully loaded image: {image_path}")
-        except Exception as e:
-            logger.error(f"Failed to load image: {str(e)}")
-            return 1
-        
-        # Process image exactly like the image_upload plugin
-        processed_image = process_image_like_upload_plugin(
-            image, 
-            device_config, 
-            args.pad, 
-            args.background_color
+        display_manager.display_image(
+            image_path=image_path,
+            pad=args.pad,
+            background_color=args.background_color
         )
         
-        # Display the image using DisplayManager (same as web UI)
-        logger.info("Displaying image on eink screen...")
-        display_manager.display_image(processed_image)
-        
-        logger.info("Photo album display completed successfully!")
-        return 0
+        logger.info("Photo album display completed successfully")
         
     except Exception as e:
-        logger.error(f"Error in photo album display: {str(e)}")
-        return 1
+        logger.error(f"Error in photo album: {e}")
+        raise
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    main() 

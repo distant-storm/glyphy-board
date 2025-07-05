@@ -1,4 +1,6 @@
-# This file ensures the photos directory is preserved in version control
+# This file ensures the photos directory is tracked in git
+# Add your photo files (.jpg, .jpeg, .png, .bmp, .gif, .tiff, .tif, .webp) to this directory
+# The photo-album board will randomly select one when run
 # 
 # To use the photo album board:
 # 1. Add your image files (.jpg, .jpeg, .png, .bmp, .gif, .tiff, .webp) to this directory

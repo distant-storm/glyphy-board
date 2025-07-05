@@ -20,12 +20,15 @@ def main():
         config = Config()
         display_manager = DisplayManager(config)
         
+        # Get screen dimensions from config
+        width, height = config.get_resolution()
+        
         # Create a new image with white background
-        image = Image.new('RGB', (config.width, config.height), color='white')
+        image = Image.new('RGB', (width, height), color='white')
         draw = ImageDraw.Draw(image)
         
         # Choose font size based on screen size
-        font_size = min(config.width, config.height) // 8
+        font_size = min(width, height) // 8
         try:
             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
         except:
@@ -37,8 +40,8 @@ def main():
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
         
-        x = (config.width - text_width) // 2
-        y = (config.height - text_height) // 2
+        x = (width - text_width) // 2
+        y = (height - text_height) // 2
         
         # Draw the text
         draw.text((x, y), text, fill='black', font=font)
