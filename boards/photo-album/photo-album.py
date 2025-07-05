@@ -1,20 +1,48 @@
 #!/usr/bin/env python3
 """
-Photo Album Board Script - Simple version without complex dependencies
+Photo Album Board Script
 
 Displays images from a photos directory. If no specific image is provided,
 randomly selects one from the photos directory.
 
 Usage:
-    python3 photo-album-simple.py [image_path]
+    python3 photo-album.py [image_path] [--pad] [--background-color COLOR]
 """
 
 import os
 import sys
 import random
 import argparse
+import warnings
 from datetime import datetime
 from pathlib import Path
+
+# Store original working directory
+original_cwd = os.getcwd()
+
+try:
+    # Add src directory to Python path and change to it
+    src_dir = Path(__file__).parent.parent / "src"
+    sys.path.insert(0, str(src_dir))
+    os.chdir(str(src_dir))
+    
+    # Suppress warning from inky library
+    warnings.filterwarnings("ignore", message=".*Busy Wait: Held high.*")
+    
+    # Import after changing directory to handle relative imports
+    from PIL import Image, ImageOps, ImageColor
+    from config import Config
+    from display.display_manager import DisplayManager
+    
+    # Set up simple logging
+    import logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    
+except ImportError as e:
+    print(f"Import error: {e}")
+    print("This script requires the full InkyPi environment to be installed.")
+    sys.exit(1)
 
 def get_supported_image_extensions():
     """Get list of supported image file extensions"""
@@ -25,7 +53,7 @@ def find_random_photo(photos_dir):
     photos_path = Path(photos_dir)
     
     if not photos_path.exists():
-        print(f"Photos directory not found: {photos_path}")
+        logger.error(f"Photos directory not found: {photos_path}")
         return None
     
     # Get all image files from the photos directory
@@ -37,59 +65,111 @@ def find_random_photo(photos_dir):
             image_files.append(file_path)
     
     if not image_files:
-        print(f"No image files found in {photos_path}")
+        logger.error(f"No image files found in {photos_path}")
         return None
     
     # Select random image
     selected_image = random.choice(image_files)
-    print(f"Randomly selected photo: {selected_image.name}")
+    logger.info(f"Randomly selected photo: {selected_image.name}")
     return selected_image
+
+def process_image_like_upload_plugin(image, device_config, pad_image=False, background_color="#ffffff"):
+    """Process image exactly like the image_upload plugin does"""
+    try:
+        logger.info(f"Original image size: {image.size}")
+        
+        if pad_image:
+            # Get device resolution and apply same logic as image_upload plugin
+            dimensions = device_config.get_resolution()
+            if device_config.get_config("orientation") == "vertical":
+                dimensions = dimensions[::-1]
+                
+            frame_ratio = dimensions[0] / dimensions[1]
+            img_width, img_height = image.size
+            padded_img_size = (
+                int(img_height * frame_ratio) if img_width >= img_height else img_width,
+                img_height if img_width >= img_height else int(img_width / frame_ratio)
+            )
+            
+            # Convert background color and apply padding
+            bg_color = ImageColor.getcolor(background_color, "RGB")
+            image = ImageOps.pad(image, padded_img_size, color=bg_color, method=Image.Resampling.LANCZOS)
+            logger.info(f"Applied padding with background color: {background_color}")
+        
+        logger.info(f"Final processed image size: {image.size}")
+        return image
+        
+    except Exception as e:
+        logger.error(f"Error processing image: {str(e)}")
+        raise
 
 def main():
     """Main function to display photo album"""
-    parser = argparse.ArgumentParser(description='Display image from photo album')
+    parser = argparse.ArgumentParser(description='Display image on eink screen from photo album')
     parser.add_argument('image_path', nargs='?', help='Path to image file (optional - if not provided, selects random photo)')
+    parser.add_argument('--pad', action='store_true', help='Pad image to fit screen while maintaining aspect ratio')
+    parser.add_argument('--background-color', default='#ffffff', help='Background color for padding (default: white)')
     
     args = parser.parse_args()
     
     try:
         current_time = datetime.now()
-        print(f"=== Photo Album Board Script Executed ===")
-        print(f"Current time: {current_time}")
+        logger.info(f"=== Photo Album Board Script Executed ===")
+        logger.info(f"Current time: {current_time}")
         
-        # Get the photos directory (relative to this script)
-        script_dir = Path(__file__).parent
+        # Get the photos directory (relative to original script location)
+        script_dir = Path(original_cwd) / "boards" / "photo-album"
         photos_dir = script_dir / "photos"
         
         # Determine which image to use
         if args.image_path:
-            # Use provided image path
-            image_path = Path(args.image_path)
+            # Use provided image path (convert to absolute path from original cwd)
+            if os.path.isabs(args.image_path):
+                image_path = Path(args.image_path)
+            else:
+                image_path = Path(original_cwd) / args.image_path
+                
             if not image_path.exists():
-                print(f"Image file not found: {image_path}")
+                logger.error(f"Image file not found: {image_path}")
                 return 1
-            print(f"Using provided image: {image_path}")
+            logger.info(f"Using provided image: {image_path}")
         else:
             # Select random photo from photos directory
             image_path = find_random_photo(photos_dir)
             if not image_path:
-                print("No photo could be selected")
+                logger.error("No photo could be selected")
                 return 1
         
-        print(f"Selected image: {image_path}")
-        print(f"Image size: {image_path.stat().st_size} bytes")
+        # Initialize configuration and display manager (same as image_upload plugin)
+        device_config = Config()
+        display_manager = DisplayManager(device_config)
         
-        # In a real implementation, this would:
-        # 1. Load the image using PIL
-        # 2. Process it for the eink display
-        # 3. Display it on the screen
+        # Load and open the image
+        logger.info(f"Loading image: {image_path}")
+        try:
+            image = Image.open(image_path)
+            logger.info(f"Successfully loaded image: {image_path}")
+        except Exception as e:
+            logger.error(f"Failed to load image: {str(e)}")
+            return 1
         
-        # For now, just simulate successful execution
-        print("Photo album display completed successfully!")
+        # Process image exactly like the image_upload plugin
+        processed_image = process_image_like_upload_plugin(
+            image, 
+            device_config, 
+            args.pad, 
+            args.background_color
+        )
+        
+        # Display the image using DisplayManager (same as web UI)
+        logger.info("Displaying image on eink screen...")
+        display_manager.display_image(processed_image)
+        
+        logger.info("Photo album display completed successfully!")
         return 0
         
     except Exception as e:
-        print(f"Error in photo album display: {str(e)}")
+        logger.error(f"Error in photo album display: {str(e)}")
         return 1
 
 if __name__ == "__main__":
