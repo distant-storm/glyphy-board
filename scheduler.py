@@ -194,7 +194,7 @@ class ScheduleEngine:
     
     def execute_board_script(self, board_name):
         """Execute the board script for the given board name"""
-        script_path = self.boards_dir / f"{board_name}.py"
+        script_path = self.boards_dir / board_name / f"{board_name}.py"
         
         if not script_path.exists():
             error_msg = f"Board script not found: {script_path}"
@@ -236,7 +236,7 @@ class ScheduleEngine:
         """Display error message on the eink screen"""
         try:
             # Try to use the dashboard script to display the error
-            dashboard_script = self.boards_dir / "dashboard.py"
+            dashboard_script = self.boards_dir / "dashboard" / "dashboard.py"
             if dashboard_script.exists():
                 logger.info("Attempting to display error using dashboard script")
                 subprocess.run([sys.executable, str(dashboard_script)], timeout=60)
@@ -269,7 +269,7 @@ class ScheduleEngine:
             else:
                 logger.info("No active schedule items found for current time")
                 # Optionally display default content or dashboard
-                dashboard_script = self.boards_dir / "dashboard.py"
+                dashboard_script = self.boards_dir / "dashboard" / "dashboard.py"
                 if dashboard_script.exists():
                     logger.info("No active schedule, showing dashboard")
                     self.execute_board_script("dashboard")

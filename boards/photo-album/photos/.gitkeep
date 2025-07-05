@@ -1,0 +1,10 @@
+# This file ensures the photos directory is preserved in version control
+# 
+# To use the photo album board:
+# 1. Add your image files (.jpg, .jpeg, .png, .bmp, .gif, .tiff, .webp) to this directory
+# 2. Run: python3 photo-album.py (without arguments to select random photo)
+# 3. Or: python3 photo-album.py path/to/specific/image.jpg
+#
+# Supported options:
+# --pad                    : Pad image to fit screen while maintaining aspect ratio
+# --background-color COLOR : Background color for padding (default: white) 
