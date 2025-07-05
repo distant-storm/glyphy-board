@@ -2,6 +2,8 @@
 
 import sys
 from pathlib import Path
+import tempfile
+import os
 
 # Add src directory to Python path - it's 2 levels up from this script
 sys.path.insert(0, str(Path(__file__).parents[2]))
@@ -15,9 +17,28 @@ from PIL import Image, ImageDraw, ImageFont
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def create_writable_config():
+    """Create a config with a writable current_image_file path"""
+    config = Config()
+    
+    # Check if the original path is writable
+    original_path = Path(config.current_image_file)
+    if not original_path.parent.exists() or not os.access(original_path.parent, os.W_OK):
+        # Create a temporary directory for the current image
+        temp_dir = Path(tempfile.gettempdir()) / "inkypi"
+        temp_dir.mkdir(exist_ok=True)
+        temp_image_file = temp_dir / "current_image.png"
+        
+        # Override the current_image_file path
+        config.current_image_file = str(temp_image_file)
+        logger.info(f"Using temporary image file: {temp_image_file}")
+    
+    return config
+
 def main():
     try:
-        config = Config()
+        # Create config with writable image file path
+        config = create_writable_config()
         display_manager = DisplayManager(config)
         
         # Get screen dimensions from config

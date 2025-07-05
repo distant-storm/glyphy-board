@@ -11,6 +11,8 @@ Usage:
 
 import sys
 from pathlib import Path
+import tempfile
+import os
 
 # Add src directory to Python path - it's 2 levels up from this script
 sys.path.insert(0, str(Path(__file__).parents[2]))
@@ -20,7 +22,6 @@ from display.display_manager import DisplayManager
 import logging
 import argparse
 import random
-import os
 from PIL import Image, ImageOps, ImageColor
 
 # Setup logging
@@ -61,6 +62,24 @@ def process_image_like_upload_plugin(image, device_config, pad_image=False, back
         return ImageOps.pad(image, padded_img_size, color=background_color, method=Image.Resampling.LANCZOS)
     return image
 
+def create_writable_config():
+    """Create a config with a writable current_image_file path"""
+    config = Config()
+    
+    # Check if the original path is writable
+    original_path = Path(config.current_image_file)
+    if not original_path.parent.exists() or not os.access(original_path.parent, os.W_OK):
+        # Create a temporary directory for the current image
+        temp_dir = Path(tempfile.gettempdir()) / "inkypi"
+        temp_dir.mkdir(exist_ok=True)
+        temp_image_file = temp_dir / "current_image.png"
+        
+        # Override the current_image_file path
+        config.current_image_file = str(temp_image_file)
+        logger.info(f"Using temporary image file: {temp_image_file}")
+    
+    return config
+
 def main():
     parser = argparse.ArgumentParser(description='Display a random photo from the photo album on the eink display')
     parser.add_argument('image_path', nargs='?', help='Path to specific image file (optional)')
@@ -82,8 +101,8 @@ def main():
             image_path = get_random_photo(photos_dir)
             logger.info(f"Selected random photo: {image_path}")
         
-        # Initialize config and display manager
-        config = Config()
+        # Create config with writable image file path
+        config = create_writable_config()
         display_manager = DisplayManager(config)
         
         # Open the image using Pillow (exactly like image_upload plugin)
