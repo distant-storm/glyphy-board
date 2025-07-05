@@ -4,6 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.name }}</title>
+    <script src="{{ url_for('static', filename='scripts/response_modal.js') }}"></script>
+    <script>
+        async function displayDashboard() {
+            try {
+                const response = await fetch("{{ url_for('main.dashboard') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showResponseModal('success', `Success! ${result.message}`);
+                } else {
+                    showResponseModal('failure', `Error! ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResponseModal('failure', 'An error occurred while displaying the dashboard.');
+            }
+        }
+    </script>
 </head>
 <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/main.css') }}">
 <body>
@@ -12,6 +35,10 @@
         <!-- Page Title -->
         <header class="header">
             <h1>{{ config.name }}</h1>
+            <button class="settings-button" onclick="displayDashboard()" title="Display Dashboard">
+                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="dashboard icon" class="icon-image">
+                Dashboard
+            </button>
             <a href="{{ url_for('settings.settings_page') }}" class="settings-button">
                 <img src="{{ url_for('static', filename='icons/settings.png') }}" title="Settings" alt="settings icon" class="icon-image">
             </a>
@@ -36,5 +63,8 @@
             {% endfor %}
         </div>
     </div>
+    
+    <!-- Success/Error Modal -->
+    {% include 'response_modal.html' %}
 <body>
 </html>
