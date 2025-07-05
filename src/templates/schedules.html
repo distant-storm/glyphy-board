@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedules</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/main.css') }}">
+    <script src="{{ url_for('static', filename='scripts/response_modal.js') }}"></script>
+    <script>
+        let currentScheduleId = null;
+        let currentItemId = null;
+        let editingItem = false;
+
+        async function createSchedule() {
+            const name = document.getElementById('scheduleName').value.trim();
+            const active = document.getElementById('scheduleActive').checked;
+
+            if (!name) {
+                showResponseModal('failure', 'Schedule name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch("{{ url_for('schedules.create_schedule') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, active })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResponseModal('success', result.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showResponseModal('failure', result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResponseModal('failure', 'An error occurred while creating the schedule');
+            }
+        }
+
+        async function updateSchedule(scheduleId, name, active) {
+            try {
+                const response = await fetch(`{{ url_for('schedules.update_schedule', schedule_id='') }}${scheduleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, active })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResponseModal('success', result.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showResponseModal('failure', result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResponseModal('failure', 'An error occurred while updating the schedule');
+            }
+        }
+
+        async function deleteSchedule(scheduleId) {
+            if (!confirm('Are you sure you want to delete this schedule? All schedule items will also be deleted.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`{{ url_for('schedules.delete_schedule', schedule_id='') }}${scheduleId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResponseModal('success', result.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showResponseModal('failure', result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResponseModal('failure', 'An error occurred while deleting the schedule');
+            }
+        }
+
+        async function createScheduleItem() {
+            const startDatetime = document.getElementById('itemStartDatetime').value;
+            const endDatetime = document.getElementById('itemEndDatetime').value;
+            const boardName = document.getElementById('itemBoardName').value.trim();
+
+            if (!startDatetime || !endDatetime || !boardName) {
+                showResponseModal('failure', 'All fields are required');
+                return;
+            }
+
+            try {
+                const url = editingItem 
+                    ? `{{ url_for('schedules.update_schedule_item', schedule_id='', item_id='') }}${currentScheduleId}/items/${currentItemId}`
+                    : `{{ url_for('schedules.create_schedule_item', schedule_id='') }}${currentScheduleId}/items`;
+                
+                const method = editingItem ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        start_datetime: startDatetime,
+                        end_datetime: endDatetime,
+                        board_name: boardName
+                    })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResponseModal('success', result.message);
+                    closeItemModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showResponseModal('failure', result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResponseModal('failure', 'An error occurred while saving the schedule item');
+            }
+        }
+
+        async function deleteScheduleItem(scheduleId, itemId) {
+            if (!confirm('Are you sure you want to delete this schedule item?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`{{ url_for('schedules.delete_schedule_item', schedule_id='', item_id='') }}${scheduleId}/items/${itemId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResponseModal('success', result.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showResponseModal('failure', result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showResponseModal('failure', 'An error occurred while deleting the schedule item');
+            }
+        }
+
+        function openCreateScheduleModal() {
+            document.getElementById('scheduleModalTitle').textContent = 'Create New Schedule';
+            document.getElementById('scheduleName').value = '';
+            document.getElementById('scheduleActive').checked = true;
+            document.getElementById('saveScheduleBtn').onclick = createSchedule;
+            document.getElementById('scheduleModal').style.display = 'block';
+        }
+
+        function openEditScheduleModal(scheduleId, name, active) {
+            document.getElementById('scheduleModalTitle').textContent = 'Edit Schedule';
+            document.getElementById('scheduleName').value = name;
+            document.getElementById('scheduleActive').checked = active;
+            document.getElementById('saveScheduleBtn').onclick = function() {
+                updateSchedule(scheduleId, document.getElementById('scheduleName').value.trim(), document.getElementById('scheduleActive').checked);
+            };
+            document.getElementById('scheduleModal').style.display = 'block';
+        }
+
+        function openCreateItemModal(scheduleId) {
+            currentScheduleId = scheduleId;
+            editingItem = false;
+            document.getElementById('itemModalTitle').textContent = 'Create Schedule Item';
+            document.getElementById('itemStartDatetime').value = '';
+            document.getElementById('itemEndDatetime').value = '';
+            document.getElementById('itemBoardName').value = '';
+            document.getElementById('itemModal').style.display = 'block';
+        }
+
+        function openEditItemModal(scheduleId, itemId, startDatetime, endDatetime, boardName) {
+            currentScheduleId = scheduleId;
+            currentItemId = itemId;
+            editingItem = true;
+            document.getElementById('itemModalTitle').textContent = 'Edit Schedule Item';
+            document.getElementById('itemStartDatetime').value = startDatetime.slice(0, 16); // Remove seconds and timezone
+            document.getElementById('itemEndDatetime').value = endDatetime.slice(0, 16);
+            document.getElementById('itemBoardName').value = boardName;
+            document.getElementById('itemModal').style.display = 'block';
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('scheduleModal').style.display = 'none';
+        }
+
+        function closeItemModal() {
+            document.getElementById('itemModal').style.display = 'none';
+        }
+
+        function toggleScheduleItems(scheduleId) {
+            const itemsContainer = document.getElementById(`items-${scheduleId}`);
+            const toggleButton = document.getElementById(`toggle-${scheduleId}`);
+            
+            if (itemsContainer.style.display === 'none' || itemsContainer.style.display === '') {
+                itemsContainer.style.display = 'block';
+                toggleButton.textContent = '▼';
+            } else {
+                itemsContainer.style.display = 'none';
+                toggleButton.textContent = '▶';
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const scheduleModal = document.getElementById('scheduleModal');
+            const itemModal = document.getElementById('itemModal');
+            if (event.target === scheduleModal) {
+                closeScheduleModal();
+            }
+            if (event.target === itemModal) {
+                closeItemModal();
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="frame">
+        <!-- Back Button -->
+        <button onclick="history.back()" class="back-button">← Back</button>
+        
+        <!-- Header -->
+        <div class="app-header">
+            <div class="header-content">
+                <div class="title-container">
+                    <img src="{{ url_for('static', filename='icons/playlist.png') }}" alt="schedules icon" class="app-icon">
+                    <h1 class="app-title">Schedules</h1>
+                </div>
+                <button class="header-button" onclick="openCreateScheduleModal()">New Schedule</button>
+            </div>
+        </div>
+        <div class="separator"></div>
+        
+        <!-- Data Warning Banner -->
+        {% if not data_init_success %}
+        <div class="warning-banner">
+            <div class="warning-content">
+                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="warning" class="warning-icon">
+                <div class="warning-text">
+                    <strong>Data Warning:</strong> {{ data_init_message }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Schedules List -->
+        <div class="schedule-list">
+            {% for schedule in schedules %}
+            <div class="schedule-item">
+                <div class="schedule-header">
+                    <div class="schedule-info">
+                        <button class="schedule-toggle" id="toggle-{{ schedule.id }}" onclick="toggleScheduleItems('{{ schedule.id }}')">▶</button>
+                        <span class="schedule-name">{{ schedule.name }}</span>
+                        {% if schedule.active %}
+                        <span class="status-badge active">Active</span>
+                        {% else %}
+                        <span class="status-badge inactive">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="schedule-actions">
+                        <button class="action-btn edit" onclick="openEditScheduleModal('{{ schedule.id }}', '{{ schedule.name }}', {{ schedule.active | lower }})" title="Edit Schedule">
+                            <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="edit" class="action-icon">
+                        </button>
+                        <button class="action-btn add" onclick="openCreateItemModal('{{ schedule.id }}')" title="Add Schedule Item">
+                            <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="add" class="action-icon">
+                        </button>
+                        <button class="action-btn delete" onclick="deleteSchedule('{{ schedule.id }}')" title="Delete Schedule">
+                            <img src="{{ url_for('static', filename='icons/remove.png') }}" alt="delete" class="action-icon">
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Schedule Items -->
+                <div id="items-{{ schedule.id }}" class="schedule-items" style="display: none;">
+                    {% set schedule_items_filtered = schedule_items | selectattr('schedule_id', 'equalto', schedule.id) | list %}
+                    {% if schedule_items_filtered %}
+                        {% for item in schedule_items_filtered %}
+                        <div class="schedule-item-row">
+                            <div class="item-info">
+                                <span class="item-board">{{ item.board_name }}</span>
+                                <span class="item-datetime">{{ item.start_datetime }} - {{ item.end_datetime }}</span>
+                            </div>
+                            <div class="item-actions">
+                                <button class="action-btn edit" onclick="openEditItemModal('{{ schedule.id }}', '{{ item.id }}', '{{ item.start_datetime }}', '{{ item.end_datetime }}', '{{ item.board_name }}')" title="Edit Item">
+                                    <img src="{{ url_for('static', filename='icons/edit.png') }}" alt="edit" class="action-icon">
+                                </button>
+                                <button class="action-btn delete" onclick="deleteScheduleItem('{{ schedule.id }}', '{{ item.id }}')" title="Delete Item">
+                                    <img src="{{ url_for('static', filename='icons/remove.png') }}" alt="delete" class="action-icon">
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-items">No schedule items yet. Click the + button to add one.</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            
+            {% if not schedules %}
+            <div class="no-schedules">
+                <p>No schedules created yet.</p>
+                <button class="action-button" onclick="openCreateScheduleModal()">Create Your First Schedule</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeScheduleModal()">×</span>
+            <h2 id="scheduleModalTitle">Create New Schedule</h2>
+            <div class="separator"></div>
+            <div class="form-group">
+                <label for="scheduleName" class="form-label">Schedule Name:</label>
+                <input type="text" id="scheduleName" name="scheduleName" placeholder="Enter schedule name..." required class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="scheduleActive" checked>
+                    Active
+                </label>
+            </div>
+            <div class="buttons-container">
+                <button type="button" class="action-button" id="saveScheduleBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Item Modal -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeItemModal()">×</span>
+            <h2 id="itemModalTitle">Create Schedule Item</h2>
+            <div class="separator"></div>
+            <div class="form-group">
+                <label for="itemStartDatetime" class="form-label">Start Date & Time:</label>
+                <input type="datetime-local" id="itemStartDatetime" name="itemStartDatetime" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label for="itemEndDatetime" class="form-label">End Date & Time:</label>
+                <input type="datetime-local" id="itemEndDatetime" name="itemEndDatetime" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label for="itemBoardName" class="form-label">Board Name:</label>
+                <input type="text" id="itemBoardName" name="itemBoardName" placeholder="Enter board name..." required class="form-input">
+            </div>
+            <div class="buttons-container">
+                <button type="button" class="action-button" onclick="createScheduleItem()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Modal -->
+    {% include 'response_modal.html' %}
+</body>
+</html> 

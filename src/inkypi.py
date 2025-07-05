@@ -16,6 +16,7 @@ import json
 import logging
 import threading
 from utils.app_utils import generate_startup_image
+from utils.data_utils import initialize_data_system
 from flask import Flask, request
 from werkzeug.serving import is_running_from_reloader
 from config import Config
@@ -25,11 +26,20 @@ from blueprints.main import main_bp
 from blueprints.settings import settings_bp
 from blueprints.plugin import plugin_bp
 from blueprints.playlist import playlist_bp
+from blueprints.schedules import schedules_bp
 from jinja2 import ChoiceLoader, FileSystemLoader
 from plugins.plugin_registry import load_plugins
 
 
 logger = logging.getLogger(__name__)
+
+# Initialize data system before starting web server
+logger.info("Initializing data system...")
+data_init_success, data_init_message = initialize_data_system()
+if not data_init_success:
+    logger.warning(f"Data system initialization completed with warnings: {data_init_message}")
+else:
+    logger.info("Data system initialization completed successfully")
 
 logger.info("Starting web server")
 app = Flask(__name__)
@@ -49,6 +59,8 @@ load_plugins(device_config.get_plugins())
 app.config['DEVICE_CONFIG'] = device_config
 app.config['DISPLAY_MANAGER'] = display_manager
 app.config['REFRESH_TASK'] = refresh_task
+app.config['DATA_INIT_SUCCESS'] = data_init_success
+app.config['DATA_INIT_MESSAGE'] = data_init_message
 
 # Set additional parameters
 app.config['MAX_FORM_PARTS'] = 10_000
@@ -58,6 +70,7 @@ app.register_blueprint(main_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(plugin_bp)
 app.register_blueprint(playlist_bp)
+app.register_blueprint(schedules_bp)
 
 if __name__ == '__main__':
     from werkzeug.serving import is_running_from_reloader

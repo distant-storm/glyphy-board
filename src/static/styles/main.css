@@ -819,3 +819,180 @@ body {
 .font-weight-normal {
   font-weight: normal; /* or 400 */
 }
+
+/* Schedules page styles */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 10px 0;
+}
+
+.schedule-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  overflow: hidden;
+}
+
+.schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eee;
+}
+
+.schedule-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.schedule-toggle {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.schedule-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+}
+
+.action-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.action-btn.edit:hover {
+  border-color: #007bff;
+}
+
+.action-btn.add:hover {
+  border-color: #28a745;
+}
+
+.action-btn.delete:hover {
+  border-color: #dc3545;
+}
+
+.action-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.schedule-items {
+  padding: 0 15px 15px 15px;
+}
+
+.schedule-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  margin: 5px 0;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #007bff;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item-board {
+  font-weight: 600;
+  color: #333;
+}
+
+.item-datetime {
+  font-size: 14px;
+  color: #666;
+}
+
+.item-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.no-items, .no-schedules {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+.no-schedules p {
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+/* Warning banner styles */
+.warning-banner {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  padding: 12px;
+}
+
+.warning-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.warning-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+}
+
+.warning-text {
+  color: #856404;
+  font-size: 14px;
+}
