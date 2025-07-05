@@ -53,35 +53,25 @@ def get_random_photo(photos_dir):
     logger.info(f"Selected random photo: {Path(selected_photo).name} from {len(photo_files)} available photos")
     return selected_photo
 
-def process_image_like_upload_plugin(image, device_config, pad_image=False, background_color="#ffffff"):
-    """Process image exactly like the image_upload plugin does"""
-    try:
-        logger.info(f"Original image size: {image.size}")
+def process_image_with_padding(image, device_config, pad=False, background_color="white"):
+    """Process image exactly like the image upload plugin does"""
+    if pad:
+        dimensions = device_config.get_resolution()
+        if device_config.get_config("orientation") == "vertical":
+            dimensions = dimensions[::-1]
         
-        if pad_image:
-            # Get device resolution and apply same logic as image_upload plugin
-            dimensions = device_config.get_resolution()
-            if device_config.get_config("orientation") == "vertical":
-                dimensions = dimensions[::-1]
-                
-            frame_ratio = dimensions[0] / dimensions[1]
-            img_width, img_height = image.size
-            padded_img_size = (
-                int(img_height * frame_ratio) if img_width >= img_height else img_width,
-                img_height if img_width >= img_height else int(img_width / frame_ratio)
-            )
-            
-            # Convert background color and apply padding
-            bg_color = ImageColor.getcolor(background_color, "RGB")
-            image = ImageOps.pad(image, padded_img_size, color=bg_color, method=Image.Resampling.LANCZOS)
-            logger.info(f"Applied padding with background color: {background_color}")
+        frame_ratio = dimensions[0] / dimensions[1]
+        img_width, img_height = image.size
+        padded_img_size = (
+            int(img_height * frame_ratio) if img_width >= img_height else img_width,
+            img_height if img_width >= img_height else int(img_width / frame_ratio)
+        )
         
-        logger.info(f"Final processed image size: {image.size}")
-        return image
-        
-    except Exception as e:
-        logger.error(f"Error processing image: {str(e)}")
-        raise
+        bg_color = ImageColor.getcolor(background_color, "RGB")
+        image = ImageOps.pad(image, padded_img_size, color=bg_color, method=Image.Resampling.LANCZOS)
+        logger.info(f"Applied padding with background color: {background_color}")
+    
+    return image
 
 def main():
     """Main function to display photo album"""
@@ -109,15 +99,30 @@ def main():
             image_path = get_random_photo(photos_dir)
             logger.info(f"Selected random photo: {image_path}")
         
-        # Display the image
+        # Load image with PIL
+        logger.info(f"Loading image: {image_path}")
+        try:
+            image = Image.open(image_path)
+            logger.info(f"Successfully loaded image: {image_path}")
+        except Exception as e:
+            logger.error(f"Failed to load image: {e}")
+            raise
+        
+        # Initialize config and display manager
         config = Config()
         display_manager = DisplayManager(config)
         
-        display_manager.display_image(
-            image_path=image_path,
-            pad=args.pad,
-            background_color=args.background_color
+        # Process image if padding requested (exactly like image upload plugin)
+        processed_image = process_image_with_padding(
+            image, 
+            config, 
+            args.pad, 
+            args.background_color
         )
+        
+        # Display the image (pass PIL Image object directly)
+        logger.info("Displaying image on eink screen...")
+        display_manager.display_image(processed_image)
         
         logger.info("Photo album display completed successfully")
         
