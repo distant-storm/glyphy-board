@@ -204,8 +204,13 @@ class ScheduleEngine:
         
         try:
             logger.info(f"Executing board script: {script_path}")
+            
+            # Use the virtual environment python if available, otherwise use sys.executable
+            venv_python = Path("/usr/local/inkypi/venv_inkypi/bin/python")
+            python_executable = str(venv_python) if venv_python.exists() else sys.executable
+            
             result = subprocess.run(
-                [sys.executable, str(script_path)],
+                [python_executable, str(script_path)],
                 capture_output=True,
                 text=True,
                 timeout=300  # 5 minute timeout

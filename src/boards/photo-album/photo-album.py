@@ -18,6 +18,9 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+# Add src directory to Python path - it's 2 levels up from this script
+sys.path.insert(0, str(Path(__file__).parents[2]))
+
 # Suppress warning from inky library
 warnings.filterwarnings("ignore", message=".*Busy Wait: Held high.*")
 
