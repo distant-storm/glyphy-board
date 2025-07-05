@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": "1751716017875",
+    "schedule_id": "1751715869242",
+    "board_name": "test-board",
+    "schedule_type": "absolute",
+    "start_datetime": "2024-01-15T14:00:00",
+    "end_datetime": "2024-01-15T15:00:00",
+    "created_at": "2025-07-05T12:46:57.875395"
+  },
+  {
+    "id": "1751716017878",
+    "schedule_id": "1751715869242",
+    "board_name": "daily-board",
+    "schedule_type": "relative",
+    "pattern_type": "daily",
+    "start_time": "09:00",
+    "end_time": "17:00",
+    "created_at": "2025-07-05T12:46:57.878194"
+  }
+]

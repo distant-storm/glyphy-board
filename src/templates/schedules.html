@@ -44,7 +44,7 @@
 
         async function updateSchedule(scheduleId, name, active) {
             try {
-                const response = await fetch(`{{ url_for('schedules.update_schedule', schedule_id='') }}${scheduleId}`, {
+                const response = await fetch(`/schedules/${scheduleId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -71,7 +71,7 @@
             }
 
             try {
-                const response = await fetch(`{{ url_for('schedules.delete_schedule', schedule_id='') }}${scheduleId}`, {
+                const response = await fetch(`/schedules/${scheduleId}`, {
                     method: 'DELETE'
                 });
 
@@ -137,8 +137,8 @@
 
             try {
                 const url = editingItem 
-                    ? `{{ url_for('schedules.update_schedule_item', schedule_id='', item_id='') }}${currentScheduleId}/items/${currentItemId}`
-                    : `{{ url_for('schedules.create_schedule_item', schedule_id='') }}${currentScheduleId}/items`;
+                    ? `/schedules/${currentScheduleId}/items/${currentItemId}`
+                    : `/schedules/${currentScheduleId}/items`;
                 
                 const method = editingItem ? 'PUT' : 'POST';
 
@@ -170,7 +170,7 @@
             }
 
             try {
-                const response = await fetch(`{{ url_for('schedules.delete_schedule_item', schedule_id='', item_id='') }}${scheduleId}/items/${itemId}`, {
+                const response = await fetch(`/schedules/${scheduleId}/items/${itemId}`, {
                     method: 'DELETE'
                 });
 
