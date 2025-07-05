@@ -47,7 +47,7 @@ def main():
         draw.text((x, y), text, fill='black', font=font)
         
         # Display the image
-        display_manager.display_pil_image(image)
+        display_manager.display_image(image)
         
         logger.info("Dashboard displayed successfully")
         
