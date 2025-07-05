@@ -21,7 +21,7 @@ def load_schedules():
                 content = f.read().strip()
                 if not content:
                     return []
-                return json.load(f)
+                return json.loads(content)  # Use json.loads() instead of json.load()
         else:
             # File doesn't exist, create it
             save_schedules([])
@@ -60,7 +60,7 @@ def load_schedule_items():
                 content = f.read().strip()
                 if not content:
                     return []
-                return json.load(f)
+                return json.loads(content)  # Use json.loads() instead of json.load()
         else:
             # File doesn't exist, create it
             save_schedule_items([])
