@@ -25,15 +25,14 @@ from PIL import Image, ImageOps, ImageColor
 src_dir = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_dir))
 
-# Set up logging
-logging.config.fileConfig(src_dir / 'config' / 'logging.conf')
-
 # Suppress warning from inky library
 warnings.filterwarnings("ignore", message=".*Busy Wait: Held high.*")
 
 from config import Config
 from display.display_manager import DisplayManager
 
+# Set up simple logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def get_supported_image_extensions():
