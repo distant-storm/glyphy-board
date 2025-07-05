@@ -16,7 +16,7 @@ def dashboard():
     """Execute the dashboard.py script to display dashboard on the eink screen"""
     try:
         # Get the path to the dashboard script
-        script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'boards', 'dashboard.py')
+        script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'boards', 'dashboard.py')
         
         # Execute the dashboard script
         result = subprocess.run([script_path], capture_output=True, text=True, timeout=30)
