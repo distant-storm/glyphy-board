@@ -5,83 +5,91 @@ Setup script for Glyphy Board Scheduler Cron Job
 This script helps set up the scheduler to run automatically.
 """
 
-# Get the current directory (where the scheduler.py is located)
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-SCHEDULER_PATH="$SCRIPT_DIR/scheduler.py"
+# Interactive cron job setup script for the scheduler
 
-echo "=== Glyphy Board Scheduler Setup ==="
-echo "Script directory: $SCRIPT_DIR"
-echo "Scheduler path: $SCHEDULER_PATH"
+# Get the current directory (where the scheduler wrapper is located)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WRAPPER_PATH="$SCRIPT_DIR/run_scheduler.sh"
 
-# Check if scheduler.py exists
-if [ ! -f "$SCHEDULER_PATH" ]; then
-    echo "ERROR: scheduler.py not found at $SCHEDULER_PATH"
+echo "Setting up cron job for InkyPi scheduler..."
+echo "Working directory: $SCRIPT_DIR"
+echo "Wrapper path: $WRAPPER_PATH"
+
+# Check if wrapper exists
+if [ ! -f "$WRAPPER_PATH" ]; then
+    echo "ERROR: run_scheduler.sh not found at $WRAPPER_PATH"
     exit 1
 fi
 
 echo ""
-echo "Scheduler found! Here are some cron job examples:"
+echo "Choose how often you want the scheduler to run:"
+echo "1) Every 5 minutes (recommended)"
+echo "2) Every 15 minutes"
+echo "3) Every hour"
+echo "4) Every 30 minutes"
+echo "5) Custom"
 echo ""
 
-echo "1. Run every 5 minutes:"
-echo "*/5 * * * * cd $SCRIPT_DIR && python3 scheduler.py >> scheduler_cron.log 2>&1"
-echo ""
+read -p "Enter your choice (1-5): " choice
 
-echo "2. Run every 15 minutes:"
-echo "*/15 * * * * cd $SCRIPT_DIR && python3 scheduler.py >> scheduler_cron.log 2>&1"
-echo ""
+case $choice in
+    1)
+        echo "*/5 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        CRON_LINE="*/5 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        ;;
+    2)
+        echo "*/15 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        CRON_LINE="*/15 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        ;;
+    3)
+        echo "0 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        CRON_LINE="0 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        ;;
+    4)
+        echo "*/30 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        CRON_LINE="*/30 * * * * cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        ;;
+    5)
+        read -p "Enter custom cron expression (e.g., '0 */2 * * *' for every 2 hours): " custom_cron
+        echo "$custom_cron cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        CRON_LINE="$custom_cron cd $SCRIPT_DIR && ./run_scheduler.sh >> scheduler_cron.log 2>&1"
+        ;;
+    *)
+        echo "Invalid choice"
+        exit 1
+        ;;
+esac
 
-echo "3. Run every hour at minute 0:"
-echo "0 * * * * cd $SCRIPT_DIR && python3 scheduler.py >> scheduler_cron.log 2>&1"
 echo ""
-
-echo "4. Run every 30 minutes:"
-echo "*/30 * * * * cd $SCRIPT_DIR && python3 scheduler.py >> scheduler_cron.log 2>&1"
+echo "The following cron job will be added:"
+echo "$CRON_LINE"
 echo ""
+read -p "Do you want to add this cron job? (y/n): " confirm
 
-echo "To add a cron job:"
-echo "1. Run: crontab -e"
-echo "2. Add one of the lines above"
-echo "3. Save and exit"
-echo ""
-
-echo "To view current cron jobs:"
-echo "crontab -l"
-echo ""
-
-echo "To view scheduler logs:"
-echo "tail -f $SCRIPT_DIR/scheduler.log"
-echo "tail -f $SCRIPT_DIR/scheduler_cron.log"
-echo ""
-
-# Ask if user wants to automatically add a cron job
-read -p "Would you like to automatically add a cron job to run every 5 minutes? (y/n): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # Add cron job
-    CRON_LINE="*/5 * * * * cd $SCRIPT_DIR && python3 scheduler.py >> scheduler_cron.log 2>&1"
-    
-    # Check if cron job already exists
-    if crontab -l 2>/dev/null | grep -q "$SCRIPT_DIR.*scheduler.py"; then
-        echo "Cron job already exists for this scheduler!"
-        echo "Current cron jobs:"
-        crontab -l | grep scheduler
-    else
-        # Add the cron job
-        (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
-        echo "✅ Cron job added successfully!"
-        echo "The scheduler will now run every 5 minutes."
-        echo ""
-        echo "To remove it later, run: crontab -e"
-        echo "And delete the line containing 'scheduler.py'"
+if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+    # Remove any existing scheduler cron jobs
+    if crontab -l 2>/dev/null | grep -q "$SCRIPT_DIR.*scheduler"; then
+        echo "Removing existing scheduler cron jobs..."
+        crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR.*scheduler" | crontab -
     fi
+    
+    # Add the new cron job
+    (crontab -l 2>/dev/null; echo "$CRON_LINE") | crontab -
+    
+    echo "Cron job added successfully!"
+    echo ""
+    echo "You can view your cron jobs with: crontab -l"
+    echo "You can remove the cron job with: crontab -e"
+    echo "And delete the line containing 'run_scheduler.sh'"
+    echo ""
+    echo "Scheduler logs will be saved to: $SCRIPT_DIR/scheduler_cron.log"
 else
-    echo "No cron job added. You can add one manually using the examples above."
+    echo "Cron job not added."
 fi
 
 echo ""
 echo "=== Setup Complete ==="
 echo "The scheduler is ready to use!"
 echo ""
-echo "Test it manually with: python3 $SCHEDULER_PATH"
+echo "Test it manually with: ./run_scheduler.sh"
 echo "View logs with: tail -f $SCRIPT_DIR/scheduler.log" 

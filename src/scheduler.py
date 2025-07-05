@@ -6,15 +6,19 @@ This script checks the current time against active schedules and executes
 the appropriate board script based on matching schedule items.
 """
 
-import json
 import sys
 import os
-import subprocess
+import json
 import logging
-from datetime import datetime, time
+import subprocess
+from datetime import datetime
 from pathlib import Path
 
-# Setup logging
+# Direct imports now that we're in src
+from config import Config
+from display.display_manager import DisplayManager
+
+# Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -27,70 +31,88 @@ logger = logging.getLogger(__name__)
 
 class ScheduleEngine:
     def __init__(self):
-        self.data_dir = Path("data")
-        self.boards_dir = Path("src") / "boards"
+        self.data_dir = Path("../data")  # data directory relative to src
         self.schedules_file = self.data_dir / "schedules.json"
         self.schedule_items_file = self.data_dir / "schedule-items.json"
+        self.boards_dir = Path("boards")  # boards directory in src
         
+        # Create data directory if it doesn't exist
+        self.data_dir.mkdir(exist_ok=True)
+        
+        logger.info(f"Scheduler initialized - Data dir: {self.data_dir.absolute()}")
+        logger.info(f"Boards dir: {self.boards_dir.absolute()}")
+
     def load_schedules(self):
         """Load schedules from JSON file"""
         try:
-            if self.schedules_file.exists():
-                with open(self.schedules_file, 'r') as f:
-                    content = f.read().strip()
-                    if not content:
-                        return []
-                    return json.loads(content)
-            return []
+            if not self.schedules_file.exists():
+                logger.warning("Schedules file not found")
+                return []
+            
+            with open(self.schedules_file, 'r') as f:
+                schedules = json.load(f)
+                logger.info(f"Loaded {len(schedules)} schedules")
+                return schedules
         except Exception as e:
             logger.error(f"Error loading schedules: {e}")
             return []
-    
+
     def load_schedule_items(self):
         """Load schedule items from JSON file"""
         try:
-            if self.schedule_items_file.exists():
-                with open(self.schedule_items_file, 'r') as f:
-                    content = f.read().strip()
-                    if not content:
-                        return []
-                    return json.loads(content)
-            return []
+            if not self.schedule_items_file.exists():
+                logger.warning("Schedule items file not found")
+                return []
+            
+            with open(self.schedule_items_file, 'r') as f:
+                items = json.load(f)
+                logger.info(f"Loaded {len(items)} schedule items")
+                return items
         except Exception as e:
             logger.error(f"Error loading schedule items: {e}")
             return []
-    
+
     def is_time_in_absolute_range(self, current_time, start_datetime, end_datetime):
         """Check if current time is within absolute datetime range"""
         try:
-            start_dt = datetime.fromisoformat(start_datetime.replace('Z', '+00:00'))
-            end_dt = datetime.fromisoformat(end_datetime.replace('Z', '+00:00'))
+            # Parse datetime strings
+            if isinstance(start_datetime, str):
+                start_dt = datetime.fromisoformat(start_datetime.replace('Z', '+00:00'))
+            else:
+                start_dt = start_datetime
             
-            # Remove timezone info for comparison if present
-            if start_dt.tzinfo:
-                start_dt = start_dt.replace(tzinfo=None)
-            if end_dt.tzinfo:
-                end_dt = end_dt.replace(tzinfo=None)
+            if isinstance(end_datetime, str):
+                end_dt = datetime.fromisoformat(end_datetime.replace('Z', '+00:00'))
+            else:
+                end_dt = end_datetime
+            
+            # Make current_time timezone-aware if the datetimes are timezone-aware
+            if start_dt.tzinfo is not None and current_time.tzinfo is None:
+                import pytz
+                current_time = pytz.timezone('UTC').localize(current_time)
             
             return start_dt <= current_time <= end_dt
         except Exception as e:
-            logger.error(f"Error parsing absolute datetime: {e}")
+            logger.error(f"Error parsing absolute time range: {e}")
             return False
-    
+
     def is_time_in_relative_range(self, current_time, pattern_type, start_time, end_time, **kwargs):
-        """Check if current time is within relative pattern range"""
+        """Check if current time matches relative pattern"""
         try:
-            start_time_obj = datetime.strptime(start_time, '%H:%M').time()
-            end_time_obj = datetime.strptime(end_time, '%H:%M').time()
-            current_time_obj = current_time.time()
+            # Parse time strings (HH:MM format)
+            start_hour, start_minute = map(int, start_time.split(':'))
+            end_hour, end_minute = map(int, end_time.split(':'))
             
             # Check if current time is within the time range
-            if start_time_obj <= end_time_obj:
-                # Same day range (e.g., 09:00 - 17:00)
-                time_matches = start_time_obj <= current_time_obj <= end_time_obj
+            current_time_minutes = current_time.hour * 60 + current_time.minute
+            start_time_minutes = start_hour * 60 + start_minute
+            end_time_minutes = end_hour * 60 + end_minute
+            
+            # Handle case where end time is next day (e.g., 23:00-01:00)
+            if end_time_minutes < start_time_minutes:
+                time_matches = (current_time_minutes >= start_time_minutes) or (current_time_minutes <= end_time_minutes)
             else:
-                # Overnight range (e.g., 22:00 - 06:00)
-                time_matches = current_time_obj >= start_time_obj or current_time_obj <= end_time_obj
+                time_matches = start_time_minutes <= current_time_minutes <= end_time_minutes
             
             if not time_matches:
                 return False
