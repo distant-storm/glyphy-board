@@ -31,45 +31,56 @@ logger = logging.getLogger(__name__)
 
 class ScheduleEngine:
     def __init__(self):
-        self.data_dir = Path("../data")  # data directory relative to src
+        # Use absolute path like the schedules blueprint does
+        self.data_dir = Path(__file__).parent.parent / "data"
         self.schedules_file = self.data_dir / "schedules.json"
         self.schedule_items_file = self.data_dir / "schedule-items.json"
-        self.boards_dir = Path("boards")  # boards directory in src
+        self.boards_dir = Path(__file__).parent / "boards"  # absolute path to boards directory
         
         # Create data directory if it doesn't exist
         self.data_dir.mkdir(exist_ok=True)
         
         logger.info(f"Scheduler initialized - Data dir: {self.data_dir.absolute()}")
+        logger.info(f"Schedules file: {self.schedules_file.absolute()}")
+        logger.info(f"Schedule items file: {self.schedule_items_file.absolute()}")
         logger.info(f"Boards dir: {self.boards_dir.absolute()}")
+        
+        # Check if files exist
+        if not self.schedules_file.exists():
+            logger.warning(f"Schedules file not found at {self.schedules_file.absolute()}")
+        if not self.schedule_items_file.exists():
+            logger.warning(f"Schedule items file not found at {self.schedule_items_file.absolute()}")
+        if not self.boards_dir.exists():
+            logger.warning(f"Boards directory not found at {self.boards_dir.absolute()}")
 
     def load_schedules(self):
         """Load schedules from JSON file"""
         try:
             if not self.schedules_file.exists():
-                logger.warning("Schedules file not found")
+                logger.warning(f"Schedules file not found at {self.schedules_file.absolute()}")
                 return []
             
             with open(self.schedules_file, 'r') as f:
                 schedules = json.load(f)
-                logger.info(f"Loaded {len(schedules)} schedules")
+                logger.info(f"Loaded {len(schedules)} schedules from {self.schedules_file.absolute()}")
                 return schedules
         except Exception as e:
-            logger.error(f"Error loading schedules: {e}")
+            logger.error(f"Error loading schedules from {self.schedules_file.absolute()}: {e}")
             return []
 
     def load_schedule_items(self):
         """Load schedule items from JSON file"""
         try:
             if not self.schedule_items_file.exists():
-                logger.warning("Schedule items file not found")
+                logger.warning(f"Schedule items file not found at {self.schedule_items_file.absolute()}")
                 return []
             
             with open(self.schedule_items_file, 'r') as f:
                 items = json.load(f)
-                logger.info(f"Loaded {len(items)} schedule items")
+                logger.info(f"Loaded {len(items)} schedule items from {self.schedule_items_file.absolute()}")
                 return items
         except Exception as e:
-            logger.error(f"Error loading schedule items: {e}")
+            logger.error(f"Error loading schedule items from {self.schedule_items_file.absolute()}: {e}")
             return []
 
     def is_time_in_absolute_range(self, current_time, start_datetime, end_datetime):
