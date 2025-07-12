@@ -72,6 +72,13 @@ app.register_blueprint(plugin_bp)
 app.register_blueprint(playlist_bp)
 app.register_blueprint(schedules_bp)
 
+# Add custom Jinja2 filters
+@app.template_filter('datetime')
+def datetime_filter(timestamp):
+    """Convert Unix timestamp to formatted datetime string"""
+    from datetime import datetime
+    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
 if __name__ == '__main__':
     from werkzeug.serving import is_running_from_reloader
 

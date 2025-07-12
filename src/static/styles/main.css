@@ -1032,3 +1032,9 @@ body {
 .date-inputs-group .form-group:last-child {
     margin-bottom: 0;
 }
+
+.form-text {
+    font-size: 0.875em;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}

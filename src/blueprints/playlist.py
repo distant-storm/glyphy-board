@@ -52,6 +52,21 @@ def add_plugin():
             refresh_config = {"scheduled": refresh_time}
 
         plugin_settings.update(handle_request_files(request.files))
+        
+        # Handle photo album saving for image upload plugin
+        if plugin_id == "image_upload" and plugin_settings.get("saveToAlbum") == "true":
+            try:
+                from plugins.plugin_registry import get_plugin_instance
+                plugin_config = device_config.get_plugin(plugin_id)
+                if plugin_config:
+                    plugin = get_plugin_instance(plugin_config)
+                    image_paths = plugin_settings.get("imageFiles[]", [])
+                    if isinstance(image_paths, str):
+                        image_paths = [image_paths]
+                    plugin.save_to_photo_album(image_paths)
+            except Exception as e:
+                logger.error(f"Failed to save to photo album: {e}")
+        
         plugin_dict = {
             "plugin_id": plugin_id,
             "refresh": refresh_config,

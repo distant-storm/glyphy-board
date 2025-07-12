@@ -134,6 +134,19 @@ def update_now():
         plugin_settings.update(handle_request_files(request.files))
         plugin_id = plugin_settings.pop("plugin_id")
 
+        # Handle photo album saving for image upload plugin
+        if plugin_id == "image_upload" and plugin_settings.get("saveToAlbum") == "true":
+            try:
+                plugin_config = device_config.get_plugin(plugin_id)
+                if plugin_config:
+                    plugin = get_plugin_instance(plugin_config)
+                    image_paths = plugin_settings.get("imageFiles[]", [])
+                    if isinstance(image_paths, str):
+                        image_paths = [image_paths]
+                    plugin.save_to_photo_album(image_paths)
+            except Exception as e:
+                logger.error(f"Failed to save to photo album: {e}")
+
         refresh_task.manual_update(ManualRefresh(plugin_id, plugin_settings))
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500

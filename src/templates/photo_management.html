@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Management</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/main.css') }}">
+    <style>
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .photo-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .photo-thumbnail {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .photo-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .photo-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+        
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="frame">
+        <!-- Back Button -->
+        <button onclick="history.back()" class="back-button">← Back</button>
+
+        <!-- Page Title -->
+        <div class="app-header">
+            <h1 class="app-title">Photo Management</h1>
+            <div id="loadingIndicator" class="loading-indicator" style="display: none;"></div>
+        </div>
+        <div class="separator"></div>
+
+        {% if error %}
+        <div class="error-message">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        {% if photos %}
+        <div class="photo-grid">
+            {% for photo in photos %}
+            <div class="photo-item" data-filename="{{ photo.name }}">
+                <img src="{{ url_for('main.photo_thumbnail', filename=photo.name) }}" 
+                     alt="{{ photo.name }}" 
+                     class="photo-thumbnail"
+                     onerror="this.style.display='none'">
+                <div class="photo-name">{{ photo.name }}</div>
+                <div class="photo-info">
+                    Size: {{ (photo.size / 1024) | round(1) }} KB<br>
+                    Modified: {{ photo.modified | datetime }}
+                </div>
+                <button class="delete-btn" onclick="deletePhoto('{{ photo.name }}')">Delete</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h3>No Photos Found</h3>
+            <p>The photo album is empty. Upload some photos using the Image Upload plugin with "Save to Photo Album" enabled.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function deletePhoto(filename) {
+            if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
+                return;
+            }
+
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block';
+
+            fetch('/delete-photo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ filename: filename })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingIndicator.style.display = 'none';
+                
+                if (data.success) {
+                    // Remove the photo item from the DOM
+                    const photoItem = document.querySelector(`[data-filename="${filename}"]`);
+                    if (photoItem) {
+                        photoItem.remove();
+                    }
+                    
+                    // Show success message
+                    alert(data.message);
+                    
+                    // If no photos left, reload the page to show empty state
+                    const remainingPhotos = document.querySelectorAll('.photo-item');
+                    if (remainingPhotos.length === 0) {
+                        location.reload();
+                    }
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to delete photo'));
+                }
+            })
+            .catch(error => {
+                loadingIndicator.style.display = 'none';
+                console.error('Error:', error);
+                alert('Error deleting photo. Please try again.');
+            });
+        }
+
+        // Add datetime filter for Jinja2
+        function formatDateTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString();
+        }
+    </script>
+</body>
+</html> 

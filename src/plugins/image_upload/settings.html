@@ -22,6 +22,17 @@
 <!-- Hidden input fields to store existing file data -->
 <div id="hiddenFileInputs"></div>
 
+<!-- Photo Album Options -->
+<div class="form-group">
+    <label for="saveToAlbum" class="form-label">Save to Photo Album:</label>
+    <div class="toggle-container">
+        <input type="checkbox" id="saveToAlbum" name="saveToAlbum" class="toggle-checkbox" value="false"
+            onclick="this.value = this.checked ? 'true' : 'false'">
+        <label for="saveToAlbum" class="toggle-label"></label>
+    </div>
+    <small class="form-text">When enabled, uploaded images will also be saved to the photo album for use with the photo album board.</small>
+</div>
+
 <script>
     function addFiles() {
         const fileInput = document.getElementById("imageUpload");
@@ -76,6 +87,7 @@
         if (loadPluginSettings) {
             document.getElementById('padImage').checked = pluginSettings.padImage;
             document.getElementById('backgroundColor').value = pluginSettings.backgroundColor;
+            document.getElementById('saveToAlbum').checked = pluginSettings.saveToAlbum === "true";
 
             const existingFiles = pluginSettings['imageFiles[]'] || []
 
