@@ -1,0 +1,39 @@
+{
+    "name": "InkyPi",
+    "orientation": "vertical",
+    "inverted_image": null,
+    "scheduler_sleep_time": 60,
+    "startup": false,
+    "resolution": [
+        1600,
+        1200
+    ],
+    "playlist_config": {
+        "playlists": [
+            {
+                "name": "Default",
+                "start_time": "00:00",
+                "end_time": "24:00",
+                "plugins": [],
+                "current_plugin_index": null
+            }
+        ],
+        "active_playlist": "Default"
+    },
+    "refresh_info": {
+        "refresh_time": "2025-07-07T17:41:15.004118+01:00",
+        "image_hash": "1530551a10c2c19458cc8b2695658e6d3a86ce7511abf184c78da34cb10c42f0",
+        "refresh_type": "Manual Update",
+        "plugin_id": "image_upload"
+    },
+    "log_system_stats": null,
+    "timezone": "Europe/London",
+    "time_format": "24h",
+    "plugin_cycle_interval_seconds": 3600,
+    "image_settings": {
+        "saturation": 1.0,
+        "brightness": 1.0,
+        "sharpness": 1.0,
+        "contrast": 1.0
+    }
+}
