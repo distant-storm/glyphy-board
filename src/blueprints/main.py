@@ -12,6 +12,31 @@ def main():
     plugins = device_config.get_plugins()
     return render_template('inky.html', plugins=plugins, config=device_config.get_config())
 
+@main_bp.route('/dashboard', methods=['POST'])
+def dashboard():
+    """Execute the dashboard.py script to display dashboard on the eink screen"""
+    try:
+        # Get the path to the dashboard script
+        script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'boards', 'dashboard', 'dashboard.py')
+        
+        # Execute the dashboard script
+        import subprocess
+        result = subprocess.run([script_path], capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            logger.info("Dashboard displayed successfully")
+            return jsonify({"success": True, "message": "Dashboard displayed successfully!"})
+        else:
+            logger.error(f"Dashboard script failed: {result.stderr}")
+            return jsonify({"error": f"Dashboard script failed: {result.stderr}"}), 500
+            
+    except subprocess.TimeoutExpired:
+        logger.error("Dashboard script timed out")
+        return jsonify({"error": "Dashboard script timed out"}), 500
+    except Exception as e:
+        logger.error(f"Error executing dashboard: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 @main_bp.route('/photo-management')
 def photo_management():
     """Photo management page for viewing and deleting photos in the album"""
