@@ -43,19 +43,27 @@ def get_power_status():
     try:
         # Get input status using pijuice_util.py
         script_dir = Path(__file__).parent.parent.parent.parent / 'scripts'
+        logger.info(f"Running PiJuice utility from: {script_dir}")
         result = subprocess.run(
             ['python3', str(script_dir / 'pijuice_util.py'), '--get-input'],
             capture_output=True, text=True, check=False, timeout=10
         )
+        logger.info(f"PiJuice utility return code: {result.returncode}")
+        logger.info(f"PiJuice utility stdout: {result.stdout}")
+        if result.stderr:
+            logger.info(f"PiJuice utility stderr: {result.stderr}")
+        
         if result.returncode == 0:
             # Parse the output to find power input status
             output_lines = result.stdout.split('\n')
             for line in output_lines:
                 if 'usbPowerInput' in line:
-                    # Extract the power input status
-                    if 'PRESENT' in line:
+                    # Extract the power input status - be more specific about the value
+                    if "'usbPowerInput': 'PRESENT'" in line or '"usbPowerInput": "PRESENT"' in line:
+                        logger.info("PiJuice power input: PRESENT (mains detected)")
                         return "Mains"
-                    elif 'NOT_PRESENT' in line:
+                    elif "'usbPowerInput': 'NOT_PRESENT'" in line or '"usbPowerInput": "NOT_PRESENT"' in line:
+                        logger.info("PiJuice power input: NOT_PRESENT (battery mode)")
                         return "Battery"
     except Exception as e:
         logger.error(f"Error using PiJuice utility: {e}")
@@ -183,17 +191,22 @@ def main():
         # Get power status
         power_status = get_power_status()
         battery_percentage = None
-        if power_status == "Battery":
-            battery_percentage = get_battery_percentage()
+        
+        logger.info(f"Power status detected: {power_status}")
         
         # Create power status text
         if power_status == "Mains":
             power_text = "Powered by mains"
+            logger.info("Setting power text to: Powered by mains")
         else:
+            # Only get battery percentage if we're on battery power
+            battery_percentage = get_battery_percentage()
             if battery_percentage is not None:
                 power_text = f"Battery powered ({battery_percentage}%)"
+                logger.info(f"Setting power text to: Battery powered ({battery_percentage}%)")
             else:
                 power_text = "Battery powered (unknown)"
+                logger.info("Setting power text to: Battery powered (unknown)")
         
         # Choose font sizes - smaller fonts for top positioning
         large_font_size = min(width, height) // 20  # Smaller than before
