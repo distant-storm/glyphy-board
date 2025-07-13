@@ -32,28 +32,58 @@ def check_pijuice_available():
 
 def get_power_status():
     """Get power status (battery or mains)"""
-    if check_pijuice_available():
-        try:
-            # Get power input status from PiJuice
-            result = subprocess.run(
-                ['pijuice_cli', 'status', '--get', 'power_input'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0:
-                power_status = result.stdout.strip()
-                logger.info(f"PiJuice power status: {power_status}")
-                return power_status == "PRESENT"  # True if mains, False if battery
-        except Exception as e:
-            logger.error(f"Error getting PiJuice power status: {e}")
-    
-    # Fallback: check system power files
+    # First try using the official PiJuice utility
     try:
+        # Get input status using pijuice_util.py
+        script_dir = Path(__file__).parent.parent.parent.parent / 'scripts'
+        result = subprocess.run(
+            ['python3', str(script_dir / 'pijuice_util.py'), '--get-input'],
+            capture_output=True, text=True, check=False, timeout=10
+        )
+        if result.returncode == 0:
+            # Parse the output to find power input status
+            output_lines = result.stdout.split('\n')
+            for line in output_lines:
+                if 'usbPowerInput' in line:
+                    # Extract the power input status
+                    if 'PRESENT' in line:
+                        logger.info("PiJuice power input: PRESENT (mains detected)")
+                        return True
+                    elif 'NOT_PRESENT' in line:
+                        logger.info("PiJuice power input: NOT_PRESENT (battery mode)")
+                        return False
+    except Exception as e:
+        logger.error(f"Error using PiJuice utility: {e}")
+    
+    # Fallback: check system files for PiJuice setups
+    try:
+        # Check if we're using PiJuice by looking for PiJuice power supply
+        if os.path.exists("/sys/class/power_supply/pijuice/online"):
+            with open("/sys/class/power_supply/pijuice/online", "r") as f:
+                pijuice_status = f.read().strip()
+                is_mains = pijuice_status == "1"
+                logger.info(f"PiJuice system power status: {'Mains' if is_mains else 'Battery'}")
+                return is_mains
+        
+        # Check for PiJuice battery status - if charging, likely on mains
+        if os.path.exists("/sys/class/power_supply/pijuice/status"):
+            with open("/sys/class/power_supply/pijuice/status", "r") as f:
+                status = f.read().strip().lower()
+                if status in ['charging', 'full']:
+                    logger.info(f"PiJuice battery status: {status} (likely on mains)")
+                    return True
+                elif status == 'discharging':
+                    logger.info(f"PiJuice battery status: {status} (battery mode)")
+                    return False
+        
+        # Fallback: check traditional AC power (only works if Pi is powered directly)
         if os.path.exists("/sys/class/power_supply/AC/online"):
             with open("/sys/class/power_supply/AC/online", "r") as f:
                 ac_status = f.read().strip()
                 is_mains = ac_status == "1"
-                logger.info(f"System power status: {'Mains' if is_mains else 'Battery'}")
+                logger.info(f"System AC power status: {'Mains' if is_mains else 'Battery'}")
                 return is_mains
+                
     except Exception as e:
         logger.error(f"Error checking system power status: {e}")
     
@@ -63,25 +93,60 @@ def get_power_status():
 
 def get_battery_percentage():
     """Get battery percentage"""
-    if check_pijuice_available():
-        try:
-            # Get battery charge from PiJuice
-            result = subprocess.run(
-                ['pijuice_cli', 'status', '--get', 'charge'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0:
-                charge = result.stdout.strip()
-                try:
-                    return int(charge)
-                except ValueError:
-                    logger.error(f"Invalid charge value from PiJuice: {charge}")
+    # Try using the official PiJuice utility first
+    try:
+        # Get battery status using pijuice_util.py
+        script_dir = Path(__file__).parent.parent.parent.parent / 'scripts'
+        result = subprocess.run(
+            ['python3', str(script_dir / 'pijuice_util.py'), '--get-battery'],
+            capture_output=True, text=True, check=False, timeout=10
+        )
+        if result.returncode == 0:
+            # Parse the output to find battery information
+            output_lines = result.stdout.split('\n')
+            for line in output_lines:
+                if 'chargeLevel' in line:
+                    # Extract charge level
+                    import re
+                    match = re.search(r'(\d+)', line)
+                    if match:
+                        charge = int(match.group(1))
+                        logger.info(f"PiJuice battery charge: {charge}%")
+                        return charge
         except Exception as e:
-            logger.error(f"Error getting PiJuice battery charge: {e}")
+            logger.error(f"Error using PiJuice utility for battery info: {e}")
     
     # Fallback: check system battery files
     try:
-        # Try different battery paths
+        # Try PiJuice-specific battery paths first
+        pijuice_battery_paths = [
+            "/sys/class/power_supply/pijuice/capacity",
+            "/sys/class/power_supply/pijuice/charge_now",
+            "/sys/class/power_supply/pijuice/charge_full"
+        ]
+        
+        # If we have charge_now and charge_full, calculate percentage
+        if (os.path.exists(pijuice_battery_paths[1]) and 
+            os.path.exists(pijuice_battery_paths[2])):
+            with open(pijuice_battery_paths[1], "r") as f:
+                charge_now = int(f.read().strip())
+            with open(pijuice_battery_paths[2], "r") as f:
+                charge_full = int(f.read().strip())
+            if charge_full > 0:
+                percentage = int((charge_now / charge_full) * 100)
+                logger.info(f"PiJuice battery percentage calculated: {percentage}%")
+                return percentage
+        
+        # Try direct capacity file
+        if os.path.exists(pijuice_battery_paths[0]):
+            with open(pijuice_battery_paths[0], "r") as f:
+                capacity = f.read().strip()
+                try:
+                    return int(capacity)
+                except ValueError:
+                    logger.error(f"Invalid capacity value from PiJuice: {capacity}")
+        
+        # Try different standard battery paths
         battery_paths = [
             "/sys/class/power_supply/BAT0/capacity",
             "/sys/class/power_supply/BAT1/capacity",

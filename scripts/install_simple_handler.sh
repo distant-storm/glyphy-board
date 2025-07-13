@@ -159,9 +159,8 @@ fi
 if command -v pijuice_cli &> /dev/null; then
     echo ""
     echo "✓ PiJuice CLI available"
-    echo "  Power status:"
-    pijuice_cli status --get power_input 2>/dev/null | sed 's/^/    Power: /'
-    pijuice_cli status --get charge 2>/dev/null | sed 's/^/    Charge: /'
+    echo "  Note: PiJuice CLI is interactive and may not work in automated scripts"
+    echo "  The handler will use system files for power detection"
 else
     echo ""
     echo "✗ PiJuice CLI not available"

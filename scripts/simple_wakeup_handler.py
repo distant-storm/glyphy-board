@@ -47,28 +47,57 @@ def check_pijuice_available():
 
 def get_power_status():
     """Get power status (battery or mains)"""
-    if check_pijuice_available():
-        try:
-            # Get power input status from PiJuice
-            result = subprocess.run(
-                ['pijuice_cli', 'status', '--get', 'power_input'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0:
-                power_status = result.stdout.strip()
-                log_message(f"PiJuice power status: {power_status}")
-                return power_status == "PRESENT"  # True if mains, False if battery
-        except Exception as e:
-            log_message(f"Error getting PiJuice power status: {e}")
-    
-    # Fallback: check system power files
+    # First try using the official PiJuice utility
     try:
+        # Get input status using pijuice_util.py
+        result = subprocess.run(
+            ['python3', str(SCRIPT_DIR / 'pijuice_util.py'), '--get-input'],
+            capture_output=True, text=True, check=False, timeout=10
+        )
+        if result.returncode == 0:
+            # Parse the output to find power input status
+            output_lines = result.stdout.split('\n')
+            for line in output_lines:
+                if 'usbPowerInput' in line:
+                    # Extract the power input status
+                    if 'PRESENT' in line:
+                        log_message("PiJuice power input: PRESENT (mains detected)")
+                        return True
+                    elif 'NOT_PRESENT' in line:
+                        log_message("PiJuice power input: NOT_PRESENT (battery mode)")
+                        return False
+    except Exception as e:
+        log_message(f"Error using PiJuice utility: {e}")
+    
+    # Fallback: check system files for PiJuice setups
+    try:
+        # Check if we're using PiJuice by looking for PiJuice power supply
+        if os.path.exists("/sys/class/power_supply/pijuice/online"):
+            with open("/sys/class/power_supply/pijuice/online", "r") as f:
+                pijuice_status = f.read().strip()
+                is_mains = pijuice_status == "1"
+                log_message(f"PiJuice system power status: {'Mains' if is_mains else 'Battery'}")
+                return is_mains
+        
+        # Check for PiJuice battery status - if charging, likely on mains
+        if os.path.exists("/sys/class/power_supply/pijuice/status"):
+            with open("/sys/class/power_supply/pijuice/status", "r") as f:
+                status = f.read().strip().lower()
+                if status in ['charging', 'full']:
+                    log_message(f"PiJuice battery status: {status} (likely on mains)")
+                    return True
+                elif status == 'discharging':
+                    log_message(f"PiJuice battery status: {status} (battery mode)")
+                    return False
+        
+        # Fallback: check traditional AC power (only works if Pi is powered directly)
         if os.path.exists("/sys/class/power_supply/AC/online"):
             with open("/sys/class/power_supply/AC/online", "r") as f:
                 ac_status = f.read().strip()
                 is_mains = ac_status == "1"
-                log_message(f"System power status: {'Mains' if is_mains else 'Battery'}")
+                log_message(f"System AC power status: {'Mains' if is_mains else 'Battery'}")
                 return is_mains
+                
     except Exception as e:
         log_message(f"Error checking system power status: {e}")
     
@@ -78,28 +107,60 @@ def get_power_status():
 
 def get_battery_info():
     """Get battery information"""
-    if check_pijuice_available():
-        try:
-            # Get battery charge
-            result = subprocess.run(
-                ['pijuice_cli', 'status', '--get', 'charge'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0:
-                charge = result.stdout.strip()
-                log_message(f"Battery charge: {charge}%")
-            
-            # Get battery voltage
-            result = subprocess.run(
-                ['pijuice_cli', 'status', '--get', 'vbat'],
-                capture_output=True, text=True, check=False
-            )
-            if result.returncode == 0:
-                voltage = result.stdout.strip()
-                log_message(f"Battery voltage: {voltage}V")
+    # Try using the official PiJuice utility first
+    try:
+        # Get battery status using pijuice_util.py
+        result = subprocess.run(
+            ['python3', str(SCRIPT_DIR / 'pijuice_util.py'), '--get-battery'],
+            capture_output=True, text=True, check=False, timeout=10
+        )
+        if result.returncode == 0:
+            # Parse the output to find battery information
+            output_lines = result.stdout.split('\n')
+            for line in output_lines:
+                if 'chargeLevel' in line:
+                    # Extract charge level
+                    import re
+                    match = re.search(r'(\d+)', line)
+                    if match:
+                        charge = int(match.group(1))
+                        log_message(f"Battery charge: {charge}%")
                 
-        except Exception as e:
-            log_message(f"Error getting battery info: {e}")
+                if 'batteryVoltage' in line:
+                    # Extract voltage
+                    import re
+                    match = re.search(r'(\d+\.?\d*)', line)
+                    if match:
+                        voltage = match.group(1)
+                        log_message(f"Battery voltage: {voltage}V")
+                
+                if 'batteryStatus' in line:
+                    # Extract battery status
+                    if 'CHARGING' in line:
+                        log_message("Battery status: CHARGING")
+                    elif 'FULL' in line:
+                        log_message("Battery status: FULL")
+                    elif 'DISCHARGING' in line:
+                        log_message("Battery status: DISCHARGING")
+                
+    except Exception as e:
+        log_message(f"Error using PiJuice utility for battery info: {e}")
+    
+    # Fallback: check system files for PiJuice
+    try:
+        # Check PiJuice-specific battery files
+        if os.path.exists("/sys/class/power_supply/pijuice/capacity"):
+            with open("/sys/class/power_supply/pijuice/capacity", "r") as f:
+                capacity = f.read().strip()
+                log_message(f"PiJuice battery capacity: {capacity}%")
+        
+        if os.path.exists("/sys/class/power_supply/pijuice/status"):
+            with open("/sys/class/power_supply/pijuice/status", "r") as f:
+                status = f.read().strip()
+                log_message(f"PiJuice battery status: {status}")
+                
+    except Exception as e:
+        log_message(f"Error getting PiJuice system battery info: {e}")
 
 def get_system_info():
     """Get basic system information"""
