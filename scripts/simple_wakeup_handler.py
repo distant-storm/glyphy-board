@@ -51,7 +51,7 @@ def get_power_status():
     try:
         # Get input status using pijuice_util.py
         result = subprocess.run(
-            ['python3', str(SCRIPT_DIR / 'pijuice_util.py'), '--get-input'],
+            ['/home/webdev/.virtualenvs/pimoroni/bin/python3', str(SCRIPT_DIR / 'pijuice_util.py'), '--get-input'],
             capture_output=True, text=True, check=False, timeout=10
         )
         if result.returncode == 0:
@@ -111,7 +111,7 @@ def get_battery_info():
     try:
         # Get battery status using pijuice_util.py
         result = subprocess.run(
-            ['python3', str(SCRIPT_DIR / 'pijuice_util.py'), '--get-battery'],
+            ['/home/webdev/.virtualenvs/pimoroni/bin/python3', str(SCRIPT_DIR / 'pijuice_util.py'), '--get-battery'],
             capture_output=True, text=True, check=False, timeout=10
         )
         if result.returncode == 0:

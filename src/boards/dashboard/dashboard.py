@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/webdev/.virtualenvs/pimoroni/bin/python3
 
 import sys
 from pathlib import Path
@@ -45,7 +45,7 @@ def get_power_status():
         script_dir = Path(__file__).parent.parent.parent.parent / 'scripts'
         logger.info(f"Running PiJuice utility from: {script_dir}")
         result = subprocess.run(
-            ['python3', str(script_dir / 'pijuice_util.py'), '--get-input'],
+            ['/home/webdev/.virtualenvs/pimoroni/bin/python3', str(script_dir / 'pijuice_util.py'), '--get-input'],
             capture_output=True, text=True, check=False, timeout=10
         )
         logger.info(f"PiJuice utility return code: {result.returncode}")
@@ -104,7 +104,7 @@ def get_battery_percentage():
         # Get battery status using pijuice_util.py
         script_dir = Path(__file__).parent.parent.parent.parent / 'scripts'
         result = subprocess.run(
-            ['python3', str(script_dir / 'pijuice_util.py'), '--get-battery'],
+            ['/home/webdev/.virtualenvs/pimoroni/bin/python3', str(script_dir / 'pijuice_util.py'), '--get-battery'],
             capture_output=True, text=True, check=False, timeout=10
         )
         if result.returncode == 0:
