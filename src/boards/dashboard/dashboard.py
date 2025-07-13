@@ -117,18 +117,34 @@ def get_battery_percentage():
             output_lines = result.stdout.split('\n')
             for line in output_lines:
                 if 'chargeLevel' in line:
-                    # Extract charge level - be more specific about the format
+                    logger.info(f"Found chargeLevel line: {line}")
+                    # Extract charge level - try multiple patterns
                     import re
-                    # Look for 'chargeLevel': number or "chargeLevel": number
-                    match = re.search(r"'chargeLevel':\s*(\d+)|"chargeLevel":\s*(\d+)", line)
-                    if match:
-                        # Get the first non-None group (either single or double quotes)
-                        charge_level = match.group(1) or match.group(2)
-                        if charge_level:
-                            logger.info(f"Parsed charge level: {charge_level}%")
-                            return int(charge_level)
-                    else:
-                        logger.warning(f"Could not parse charge level from line: {line}")
+                    
+                    # Try different patterns in order of specificity
+                    patterns = [
+                        r"'chargeLevel':\s*(\d+)",  # Single quotes
+                        r'"chargeLevel":\s*(\d+)',  # Double quotes
+                        r'chargeLevel.*?(\d+)',     # Any format with chargeLevel followed by number
+                        r'(\d+)'                    # Fallback: any number (original behavior)
+                    ]
+                    
+                    for pattern in patterns:
+                        match = re.search(pattern, line)
+                        if match:
+                            charge_level = match.group(1)
+                            # Validate the result is reasonable (0-100)
+                            try:
+                                charge_int = int(charge_level)
+                                if 0 <= charge_int <= 100:
+                                    logger.info(f"Parsed charge level: {charge_int}% (pattern: {pattern})")
+                                    return charge_int
+                                else:
+                                    logger.warning(f"Charge level out of range (0-100): {charge_int}%")
+                            except ValueError:
+                                logger.warning(f"Invalid charge level value: {charge_level}")
+                    
+                    logger.warning(f"Could not parse charge level from line: {line}")
     except Exception as e:
         logger.error(f"Error using PiJuice utility for battery info: {e}")
     
