@@ -62,8 +62,8 @@ def get_power_status():
                     if "'usbPowerInput': 'PRESENT'" in line or '"usbPowerInput": "PRESENT"' in line:
                         logger.info("PiJuice power input: PRESENT (mains detected)")
                         return "Mains"
-                    elif "'usbPowerInput': 'NOT_PRESENT'" in line or '"usbPowerInput": "NOT_PRESENT"' in line:
-                        logger.info("PiJuice power input: NOT_PRESENT (battery mode)")
+                    elif "'usbPowerInput': 'NOT PRESENT'" in line or '"usbPowerInput": "NOT PRESENT"' in line:
+                        logger.info("PiJuice power input: NOT PRESENT (battery mode)")
                         return "Battery"
     except Exception as e:
         logger.error(f"Error using PiJuice utility: {e}")
@@ -194,13 +194,19 @@ def main():
         
         logger.info(f"Power status detected: {power_status}")
         
+        # Get battery percentage regardless of power status (useful information)
+        battery_percentage = get_battery_percentage()
+        
         # Create power status text
         if power_status == "Mains":
-            power_text = "Powered by mains"
-            logger.info("Setting power text to: Powered by mains")
+            if battery_percentage is not None:
+                power_text = f"Powered by mains (Battery: {battery_percentage}%)"
+                logger.info(f"Setting power text to: Powered by mains (Battery: {battery_percentage}%)")
+            else:
+                power_text = "Powered by mains"
+                logger.info("Setting power text to: Powered by mains")
         else:
-            # Only get battery percentage if we're on battery power
-            battery_percentage = get_battery_percentage()
+            # Battery power
             if battery_percentage is not None:
                 power_text = f"Battery powered ({battery_percentage}%)"
                 logger.info(f"Setting power text to: Battery powered ({battery_percentage}%)")

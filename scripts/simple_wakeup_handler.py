@@ -59,12 +59,12 @@ def get_power_status():
             output_lines = result.stdout.split('\n')
             for line in output_lines:
                 if 'usbPowerInput' in line:
-                    # Extract the power input status
-                    if 'PRESENT' in line:
+                    # Extract the power input status - be more specific about the value
+                    if "'usbPowerInput': 'PRESENT'" in line or '"usbPowerInput": "PRESENT"' in line:
                         log_message("PiJuice power input: PRESENT (mains detected)")
                         return True
-                    elif 'NOT_PRESENT' in line:
-                        log_message("PiJuice power input: NOT_PRESENT (battery mode)")
+                    elif "'usbPowerInput': 'NOT PRESENT'" in line or '"usbPowerInput": "NOT PRESENT"' in line:
+                        log_message("PiJuice power input: NOT PRESENT (battery mode)")
                         return False
     except Exception as e:
         log_message(f"Error using PiJuice utility: {e}")
