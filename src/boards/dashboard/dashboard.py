@@ -107,16 +107,28 @@ def get_battery_percentage():
             ['/home/webdev/.virtualenvs/pimoroni/bin/python3', str(script_dir / 'pijuice_util.py'), '--get-battery'],
             capture_output=True, text=True, check=False, timeout=10
         )
+        logger.info(f"PiJuice battery utility return code: {result.returncode}")
+        logger.info(f"PiJuice battery utility stdout: {result.stdout}")
+        if result.stderr:
+            logger.info(f"PiJuice battery utility stderr: {result.stderr}")
+        
         if result.returncode == 0:
             # Parse the output to find battery information
             output_lines = result.stdout.split('\n')
             for line in output_lines:
                 if 'chargeLevel' in line:
-                    # Extract charge level
+                    # Extract charge level - be more specific about the format
                     import re
-                    match = re.search(r'(\d+)', line)
+                    # Look for 'chargeLevel': number or "chargeLevel": number
+                    match = re.search(r"'chargeLevel':\s*(\d+)|"chargeLevel":\s*(\d+)", line)
                     if match:
-                        return int(match.group(1))
+                        # Get the first non-None group (either single or double quotes)
+                        charge_level = match.group(1) or match.group(2)
+                        if charge_level:
+                            logger.info(f"Parsed charge level: {charge_level}%")
+                            return int(charge_level)
+                    else:
+                        logger.warning(f"Could not parse charge level from line: {line}")
     except Exception as e:
         logger.error(f"Error using PiJuice utility for battery info: {e}")
     

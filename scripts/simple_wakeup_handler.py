@@ -119,12 +119,18 @@ def get_battery_info():
             output_lines = result.stdout.split('\n')
             for line in output_lines:
                 if 'chargeLevel' in line:
-                    # Extract charge level
+                    # Extract charge level - be more specific about the format
                     import re
-                    match = re.search(r'(\d+)', line)
+                    # Look for 'chargeLevel': number or "chargeLevel": number
+                    match = re.search(r"'chargeLevel':\s*(\d+)|"chargeLevel":\s*(\d+)", line)
                     if match:
-                        charge = int(match.group(1))
-                        log_message(f"Battery charge: {charge}%")
+                        # Get the first non-None group (either single or double quotes)
+                        charge_level = match.group(1) or match.group(2)
+                        if charge_level:
+                            charge = int(charge_level)
+                            log_message(f"Battery charge: {charge}%")
+                    else:
+                        log_message(f"Could not parse charge level from line: {line}")
                 
                 if 'batteryVoltage' in line:
                     # Extract voltage
