@@ -1,6 +1,6 @@
 [Unit]
 Description=Simple Wakeup Handler Service
-After=network.target
+After=network.target multi-user.target
 Wants=network.target
 
 [Service]
@@ -12,10 +12,6 @@ StandardOutput=journal
 StandardError=journal
 TimeoutStartSec=300
 TimeoutStopSec=30
-
-# Restart policy (not needed for oneshot, but included for completeness)
-Restart=no
-RestartSec=0
 
 # Environment variables
 Environment=PYTHONUNBUFFERED=1

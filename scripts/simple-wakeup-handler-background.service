@@ -1,0 +1,27 @@
+[Unit]
+Description=Simple Wakeup Handler Background Service
+After=network.target multi-user.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/webdev/glyphy-board/scripts/simple_wakeup_handler.py --background
+User=root
+Group=root
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+# Restart policy - restart on failure
+Restart=on-failure
+RestartSec=10
+
+# Environment variables
+Environment=PYTHONUNBUFFERED=1
+
+# Keep the service running
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target 

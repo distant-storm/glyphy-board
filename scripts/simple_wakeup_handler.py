@@ -355,11 +355,24 @@ def timeout_handler(signum, frame):
 
 def main():
     """Main function"""
+    import argparse
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Simple Wakeup Handler')
+    parser.add_argument('--background', '-b', action='store_true',
+                       help='Run in background mode (for service)')
+    parser.add_argument('--test', '-t', action='store_true',
+                       help='Run in test mode (no shutdown)')
+    
+    args = parser.parse_args()
+    
     log_message("=== Simple Wakeup Handler Started ===")
     log_message(f"Script directory: {SCRIPT_DIR}")
     log_message(f"Log file: {LOG_FILE}")
     log_message(f"Main script: {MAIN_SCRIPT}")
     log_message(f"Total timeout: {TOTAL_TIMEOUT} seconds")
+    log_message(f"Background mode: {args.background}")
+    log_message(f"Test mode: {args.test}")
     
     # Check if running as root (needed for shutdown)
     if os.geteuid() != 0:
@@ -373,7 +386,7 @@ def main():
     log_message(f"Power source: {'Mains' if is_mains else 'Battery'}")
     
     # Set up timeout handler for battery mode
-    if not is_mains:
+    if not is_mains and not args.test:
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(TOTAL_TIMEOUT)
         log_message(f"Timeout set for {TOTAL_TIMEOUT} seconds (battery mode)")
@@ -387,12 +400,15 @@ def main():
         success = run_main_script()
         
         # Cancel timeout if we get here
-        if not is_mains:
+        if not is_mains and not args.test:
             signal.alarm(0)
             log_message("Timeout cancelled - script completed normally")
         
-        # Handle shutdown based on power status
-        if is_mains:
+        # Handle shutdown based on power status and mode
+        if args.test:
+            log_message("Test mode - no shutdown will occur")
+            log_message("=== Simple Wakeup Handler Completed (Test Mode) ===")
+        elif is_mains:
             log_message("Running on mains power - Pi will stay running")
             log_message("=== Simple Wakeup Handler Completed (Mains Mode) ===")
         else:
@@ -405,12 +421,13 @@ def main():
                 
     except Exception as e:
         log_message(f"ERROR: Unexpected error in main function: {e}")
-        if not is_mains:
+        if not is_mains and not args.test:
             log_message("Forcing shutdown due to error (battery mode)")
             shutdown_pi()
         else:
-            log_message("Error occurred but staying running (mains mode)")
-            raise
+            log_message("Error occurred but staying running (mains/test mode)")
+            if not args.background:
+                raise
 
 if __name__ == "__main__":
     main() 
