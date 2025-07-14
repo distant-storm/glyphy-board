@@ -27,6 +27,19 @@ A simplified solution for Raspberry Pi with PiJuice that runs your main script o
 - `check_simple_status.sh` - Status checker (created during install)
 - `test_power_detection.py` - Power detection test script
 
+## Additional Scripts
+
+### Weather Info Script
+- `weather_info.py` - Fetches weather data from Open-Meteo API
+- `weather_config.txt` - Weather script configuration
+- `README_weather_info.md` - Weather script documentation
+
+### Fact Script
+- `fact.py` - Fetches random facts from API Ninjas
+- `fact_config.txt` - Fact script configuration
+- `README_fact.md` - Fact script documentation
+- `test_fact.py` - Test script for fact functionality
+
 ## Quick Setup
 
 ### 1. Install the Handler

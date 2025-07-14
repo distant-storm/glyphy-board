@@ -1,0 +1,21 @@
+# API Ninjas Facts API Configuration
+# 
+# The fact.py script uses API Ninjas to fetch random facts
+# 
+# To use the fact script:
+# 1. Get a free API key from: https://api-ninjas.com/
+# 2. Add your API key below
+# 3. Run: python3 scripts/fact.py
+# 4. Fact data will be saved to: data/fact_data.json
+#
+# API Ninjas Facts API: https://api-ninjas.com/api/facts
+# Documentation: https://api-ninjas.com/api/facts
+
+# Your API Ninjas API key (replace with your actual key)
+API_KEY=v4+7isVBV0Itw++XgNrSLQ==cjfW3l1MdGf0ySO9
+
+# API endpoint
+API_URL=https://api.api-ninjas.com/v1/facts
+
+# Note: The limit parameter is only available for premium users
+# Free users get 1 fact per request 
