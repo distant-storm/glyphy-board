@@ -39,7 +39,7 @@ def main():
         # Get current date and time
         now = datetime.now()
         date_str = now.strftime("%A, %B %d, %Y")
-        time_str = now.strftime("%I:%M %p")
+        time_str = now.strftime("%H:%M")  # Use 24-hour format for testing
         
         # Get power status
         power_status = get_power_status()

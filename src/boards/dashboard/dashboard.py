@@ -214,7 +214,13 @@ def main():
         # Get current date and time
         now = datetime.now()
         date_str = now.strftime("%A, %B %d, %Y")
-        time_str = now.strftime("%I:%M %p")
+        
+        # Get time format from config and format time accordingly
+        time_format = config.get_config("time_format", default="12h")
+        if time_format == "24h":
+            time_str = now.strftime("%H:%M")
+        else:
+            time_str = now.strftime("%I:%M %p")
         
         # Get power status
         power_status = get_power_status()
