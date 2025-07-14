@@ -45,24 +45,44 @@ def configure_pijuice_shutdown():
         # Initialize PiJuice
         pj = pijuice.PiJuice(1, 0x14)
         
-        # Check current power off on shutdown setting
-        result = pj.power.GetPowerOffOnShutdown()
-        if result['error'] == 'NO_ERROR':
-            current_setting = result['data']
-            log_message(f"Current PiJuice power off on shutdown setting: {current_setting}")
-            
-            # Enable power off on shutdown if not already enabled
-            if not current_setting:
-                log_message("Enabling PiJuice power off on shutdown...")
-                result = pj.power.SetPowerOffOnShutdown(True)
-                if result['error'] == 'NO_ERROR':
-                    log_message("✓ PiJuice power off on shutdown enabled")
+        # Check if the method exists (different PiJuice versions have different APIs)
+        if hasattr(pj.power, 'GetPowerOffOnShutdown'):
+            # Check current power off on shutdown setting
+            result = pj.power.GetPowerOffOnShutdown()
+            if result['error'] == 'NO_ERROR':
+                current_setting = result['data']
+                log_message(f"Current PiJuice power off on shutdown setting: {current_setting}")
+                
+                # Enable power off on shutdown if not already enabled
+                if not current_setting:
+                    log_message("Enabling PiJuice power off on shutdown...")
+                    result = pj.power.SetPowerOffOnShutdown(True)
+                    if result['error'] == 'NO_ERROR':
+                        log_message("✓ PiJuice power off on shutdown enabled")
+                    else:
+                        log_message(f"✗ Failed to enable PiJuice power off on shutdown: {result['error']}")
                 else:
-                    log_message(f"✗ Failed to enable PiJuice power off on shutdown: {result['error']}")
+                    log_message("✓ PiJuice power off on shutdown already enabled")
             else:
-                log_message("✓ PiJuice power off on shutdown already enabled")
+                log_message(f"✗ Failed to get PiJuice power off setting: {result['error']}")
         else:
-            log_message(f"✗ Failed to get PiJuice power off setting: {result['error']}")
+            # Try alternative method names or skip configuration
+            log_message("PiJuice power off configuration methods not available in this version")
+            log_message("Available power methods:")
+            available_methods = [method for method in dir(pj.power) if not method.startswith('_')]
+            log_message(f"  {available_methods}")
+            
+            # Try to set power off using alternative method if available
+            if hasattr(pj.power, 'SetPowerOff'):
+                log_message("Using SetPowerOff method...")
+                result = pj.power.SetPowerOff(0)  # Power off immediately
+                if result['error'] == 'NO_ERROR':
+                    log_message("✓ PiJuice power off configured")
+                else:
+                    log_message(f"✗ Failed to configure PiJuice power off: {result['error']}")
+            else:
+                log_message("No power off configuration method found - using system shutdown")
+                return False
             
     except ImportError:
         log_message("✗ PiJuice library not available - using fallback shutdown method")
@@ -151,14 +171,32 @@ def shutdown_with_pijuice(delay_seconds=5):
             pj = pijuice.PiJuice(1, 0x14)
             
             log_message("Using PiJuice for shutdown...")
-            result = pj.power.PowerOff(0)  # Power off immediately
-            if result['error'] == 'NO_ERROR':
-                log_message("✓ PiJuice power off command sent successfully")
-                log_message("Pi will shutdown and PiJuice will cut power")
+            
+            # Try different power off methods based on available API
+            if hasattr(pj.power, 'PowerOff'):
+                result = pj.power.PowerOff(0)  # Power off immediately
+                if result['error'] == 'NO_ERROR':
+                    log_message("✓ PiJuice power off command sent successfully")
+                    log_message("Pi will shutdown and PiJuice will cut power")
+                else:
+                    log_message(f"✗ PiJuice power off failed: {result['error']}")
+                    # Fallback to system shutdown
+                    log_message("Falling back to system shutdown...")
+                    subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=False)
+                    log_message("System shutdown command sent")
+            elif hasattr(pj.power, 'SetPowerOff'):
+                result = pj.power.SetPowerOff(0)  # Power off immediately
+                if result['error'] == 'NO_ERROR':
+                    log_message("✓ PiJuice power off command sent successfully")
+                    log_message("Pi will shutdown and PiJuice will cut power")
+                else:
+                    log_message(f"✗ PiJuice power off failed: {result['error']}")
+                    # Fallback to system shutdown
+                    log_message("Falling back to system shutdown...")
+                    subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=False)
+                    log_message("System shutdown command sent")
             else:
-                log_message(f"✗ PiJuice power off failed: {result['error']}")
-                # Fallback to system shutdown
-                log_message("Falling back to system shutdown...")
+                log_message("No PiJuice power off method available - using system shutdown")
                 subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=False)
                 log_message("System shutdown command sent")
         else:
