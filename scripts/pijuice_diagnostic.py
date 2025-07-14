@@ -79,9 +79,12 @@ def list_available_methods():
         
         # IO methods
         logger.info("IO methods:")
-        io_methods = [method for method in dir(pj.io) if not method.startswith('_')]
-        for method in sorted(io_methods):
-            logger.info(f"  pj.io.{method}")
+        if hasattr(pj, 'io'):
+            io_methods = [method for method in dir(pj.io) if not method.startswith('_')]
+            for method in sorted(io_methods):
+                logger.info(f"  pj.io.{method}")
+        else:
+            logger.info("  No IO methods available in this PiJuice version")
         
         return True
         
@@ -146,11 +149,29 @@ def get_current_status():
             status = result['data']
             logger.info(f"Status: {status}")
         
-        # Get battery status
-        result = pj.status.GetBatteryStatus()
-        if result['error'] == 'NO_ERROR':
-            battery = result['data']
-            logger.info(f"Battery: {battery}")
+        # Get battery status (different methods for different PiJuice versions)
+        if hasattr(pj.status, 'GetBatteryStatus'):
+            result = pj.status.GetBatteryStatus()
+            if result['error'] == 'NO_ERROR':
+                battery = result['data']
+                logger.info(f"Battery: {battery}")
+        else:
+            # Try alternative battery status methods
+            logger.info("GetBatteryStatus not available, trying alternative methods...")
+            
+            # Try GetBatteryVoltage
+            if hasattr(pj.status, 'GetBatteryVoltage'):
+                result = pj.status.GetBatteryVoltage()
+                if result['error'] == 'NO_ERROR':
+                    voltage = result['data']
+                    logger.info(f"Battery voltage: {voltage}mV")
+            
+            # Try GetBatteryCurrent
+            if hasattr(pj.status, 'GetBatteryCurrent'):
+                result = pj.status.GetBatteryCurrent()
+                if result['error'] == 'NO_ERROR':
+                    current = result['data']
+                    logger.info(f"Battery current: {current}mA")
         
         # Get charge level
         result = pj.status.GetChargeLevel()

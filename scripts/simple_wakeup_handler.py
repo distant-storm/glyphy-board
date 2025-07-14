@@ -76,6 +76,26 @@ def configure_pijuice_shutdown():
                     log_message("✓ PiJuice power off on shutdown already enabled")
             else:
                 log_message(f"✗ Failed to get PiJuice power off setting: {result['error']}")
+        elif hasattr(pj.power, 'GetPowerOff'):
+            # Use GetPowerOff/SetPowerOff methods (PiJuice v1.8+)
+            log_message("Using GetPowerOff/SetPowerOff methods (PiJuice v1.8+)")
+            result = pj.power.GetPowerOff()
+            if result['error'] == 'NO_ERROR':
+                current_setting = result['data']
+                log_message(f"Current PiJuice power off setting: {current_setting}")
+                
+                # Set power off to enabled (0 = disabled, 1 = enabled)
+                if current_setting == 0:
+                    log_message("Enabling PiJuice power off...")
+                    result = pj.power.SetPowerOff(1)
+                    if result['error'] == 'NO_ERROR':
+                        log_message("✓ PiJuice power off enabled")
+                    else:
+                        log_message(f"✗ Failed to enable PiJuice power off: {result['error']}")
+                else:
+                    log_message("✓ PiJuice power off already enabled")
+            else:
+                log_message(f"✗ Failed to get PiJuice power off setting: {result['error']}")
         else:
             # Try alternative method names or skip configuration
             log_message("PiJuice power off configuration methods not available in this version")
@@ -86,7 +106,7 @@ def configure_pijuice_shutdown():
             # Try to set power off using alternative method if available
             if hasattr(pj.power, 'SetPowerOff'):
                 log_message("Using SetPowerOff method...")
-                result = pj.power.SetPowerOff(0)  # Power off immediately
+                result = pj.power.SetPowerOff(1)  # Enable power off
                 if result['error'] == 'NO_ERROR':
                     log_message("✓ PiJuice power off configured")
                 else:
