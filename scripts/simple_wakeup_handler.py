@@ -45,6 +45,41 @@ def check_pijuice_available():
     except Exception:
         return False
 
+def configure_pijuice_shutdown():
+    """Configure PiJuice to properly cut power on shutdown"""
+    log_message("Configuring PiJuice shutdown behavior...")
+    
+    try:
+        # Import PiJuice library
+        import pijuice
+        
+        # Initialize PiJuice
+        pj = pijuice.PiJuice(1, 0x14)
+        
+        # Check current power off on shutdown setting
+        result = pj.power.GetPowerOffOnShutdown()
+        if result['error'] == 'NO_ERROR':
+            current_setting = result['data']
+            log_message(f"Current PiJuice power off on shutdown setting: {current_setting}")
+            
+            # Enable power off on shutdown if not already enabled
+            if not current_setting:
+                log_message("Enabling PiJuice power off on shutdown...")
+                result = pj.power.SetPowerOffOnShutdown(True)
+                if result['error'] == 'NO_ERROR':
+                    log_message("✓ PiJuice power off on shutdown enabled")
+                else:
+                    log_message(f"✗ Failed to enable PiJuice power off on shutdown: {result['error']}")
+            else:
+                log_message("✓ PiJuice power off on shutdown already enabled")
+        else:
+            log_message(f"✗ Failed to get PiJuice power off setting: {result['error']}")
+            
+    except ImportError:
+        log_message("✗ PiJuice library not available - using fallback shutdown method")
+    except Exception as e:
+        log_message(f"✗ Error configuring PiJuice shutdown: {e}")
+
 def get_power_status():
     """Get power status (battery or mains)"""
     # First try using the official PiJuice utility
@@ -239,16 +274,39 @@ def run_main_script():
         return False
 
 def shutdown_pi():
-    """Shutdown the Raspberry Pi"""
+    """Shutdown the Raspberry Pi using PiJuice if available"""
     log_message("=== Shutting down Raspberry Pi ===")
     log_message(f"Waiting {SHUTDOWN_DELAY} seconds before shutdown...")
     time.sleep(SHUTDOWN_DELAY)
     
     try:
+        # Try to use PiJuice for proper shutdown
+        import pijuice
+        pj = pijuice.PiJuice(1, 0x14)
+        
+        log_message("Using PiJuice for shutdown...")
+        result = pj.power.PowerOff(0)  # Power off immediately
+        if result['error'] == 'NO_ERROR':
+            log_message("✓ PiJuice power off command sent successfully")
+        else:
+            log_message(f"✗ PiJuice power off failed: {result['error']}")
+            # Fallback to system shutdown
+            log_message("Falling back to system shutdown...")
+            subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=False)
+            log_message("System shutdown command sent")
+            
+    except ImportError:
+        log_message("PiJuice library not available - using system shutdown")
         subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=False)
-        log_message("Shutdown command sent")
+        log_message("System shutdown command sent")
     except Exception as e:
-        log_message(f"Error sending shutdown command: {e}")
+        log_message(f"Error with PiJuice shutdown: {e}")
+        log_message("Falling back to system shutdown...")
+        try:
+            subprocess.run(['sudo', 'shutdown', '-h', 'now'], check=False)
+            log_message("System shutdown command sent")
+        except Exception as e2:
+            log_message(f"Error sending shutdown command: {e2}")
 
 def timeout_handler(signum, frame):
     """Handle timeout signal"""
@@ -268,6 +326,9 @@ def main():
     if os.geteuid() != 0:
         log_message("WARNING: Not running as root - shutdown functionality may not work")
     
+    # Configure PiJuice shutdown behavior
+    configure_pijuice_shutdown()
+
     # Get power status
     is_mains = get_power_status()
     log_message(f"Power source: {'Mains' if is_mains else 'Battery'}")
