@@ -35,24 +35,6 @@
         <!-- Page Title -->
         <header class="header">
             <h1>{{ config.name }}</h1>
-            <button class="settings-button" onclick="displayDashboard()" title="Display Dashboard">
-                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="dashboard icon" class="icon-image">
-                Dashboard
-            </button>
-            <a href="{{ url_for('settings.settings_page') }}" class="settings-button">
-                <img src="{{ url_for('static', filename='icons/settings.png') }}" title="Settings" alt="settings icon" class="icon-image">
-            </a>
-            <a href="{{ url_for('playlist.playlists') }}" class="settings-button">
-                <img src="{{ url_for('static', filename='icons/playlist.png') }}" title="Playlists" alt="playlists icon" class="icon-image">
-            </a>
-            <a href="{{ url_for('schedules.schedules_page') }}" class="settings-button">
-                <img src="{{ url_for('static', filename='icons/playlist.png') }}" title="Schedules" alt="schedules icon" class="icon-image">
-                Schedules
-            </a>
-            <a href="{{ url_for('main.photo_management') }}" class="settings-button">
-                <img src="{{ url_for('static', filename='icons/settings.png') }}" title="Photo Management" alt="photo management icon" class="icon-image">
-                Photos
-            </a>
         </header>
 
         <!-- Display the current image -->
@@ -69,6 +51,17 @@
                 <img src="{{ url_for('plugin.image', plugin_id=plugin.id, filename='icon.png') }}" alt="{{ plugin.display_name }} icon" class="icon-image">
             </a>
             {% endfor %}
+            
+            <!-- Additional UI Icons -->
+            <button class="icon-button" onclick="displayDashboard()" title="Dashboard">
+                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="dashboard icon" class="icon-image">
+            </button>
+            <a href="{{ url_for('schedules.schedules_page') }}" class="icon-button" title="Schedules">
+                <img src="{{ url_for('static', filename='icons/playlist.png') }}" alt="schedules icon" class="icon-image">
+            </a>
+            <a href="{{ url_for('main.photo_management') }}" class="icon-button" title="Photos">
+                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="photo management icon" class="icon-image">
+            </a>
         </div>
     </div>
     
