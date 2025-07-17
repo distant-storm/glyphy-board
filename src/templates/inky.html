@@ -4,7 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config.name }}</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Premium e-ink display management system">
+    <meta name="theme-color" content="#6c63ff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Glyphy Board">
+    <meta name="msapplication-TileColor" content="#6c63ff">
+    <meta name="msapplication-config" content="{{ url_for('static', filename='browserconfig.xml') }}">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/icon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/icon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/icon-180x180.png') }}">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/main.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/splash.css') }}">
+    
+    <!-- Scripts -->
     <script src="{{ url_for('static', filename='scripts/response_modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/pwa.js') }}"></script>
+    
     <script>
         async function displayDashboard() {
             try {
@@ -28,44 +54,138 @@
         }
     </script>
 </head>
-<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/main.css') }}">
 <body>
-    <!-- Subtle frame container -->
-    <div class="frame">
-        <!-- Page Title -->
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">Glyphy Board</div>
+            <div class="splash-tagline">Premium E-ink Display Management</div>
+            <div class="splash-loader"></div>
+        </div>
+    </div>
+
+    <!-- Install Button -->
+    <button id="install-button" class="install-btn" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7,10 12,15 17,10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Install App
+    </button>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Header with gradient -->
         <header class="header">
-            <h1>{{ config.name }}</h1>
+            <div class="header-content">
+                <h1 class="app-title">{{ config.name }}</h1>
+                <div class="header-subtitle">Dashboard</div>
+            </div>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="displayDashboard()" title="Refresh Dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23,4 23,10 17,10"></polyline>
+                        <polyline points="1,20 1,14 7,14"></polyline>
+                        <path d="m20.49,9a9,9,0,1,1-2.13-5.36l2.64,2.36"></path>
+                    </svg>
+                </button>
+            </div>
         </header>
 
-        <!-- Display the current image -->
-        <div class="image-container">
-            <img src="{{ url_for('static', filename='images/current_image.png') }}" alt="Current Image">
-        </div>
+        <!-- Current Display Section -->
+        <section class="display-section">
+            <div class="section-header">
+                <h2>Current Display</h2>
+                <div class="status-indicator online"></div>
+            </div>
+            <div class="display-card">
+                <div class="image-container">
+                    <img src="{{ url_for('static', filename='images/current_image.png') }}" alt="Current Display Image" class="display-image">
+                    <div class="image-overlay">
+                        <button class="overlay-btn" onclick="displayDashboard()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="10,15 15,10 21,16"></polyline>
+                                <path d="m21,21-6-6h-8a8,8,0,0,1,0-16l5.5,5.5"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        <!-- Separator -->
-        <div class="separator"></div>
-        <h2 class="plugins-title">Plugins</h2>
-        <div class="button-grid">
-            {% for plugin in plugins %}
-            <a href="{{ url_for('plugin.plugin_page', plugin_id=plugin.id) }}" class="icon-button" title="{{ plugin.display_name }}" >
-                <img src="{{ url_for('plugin.image', plugin_id=plugin.id, filename='icon.png') }}" alt="{{ plugin.display_name }} icon" class="icon-image">
-            </a>
-            {% endfor %}
-            
-            <!-- Additional UI Icons -->
-            <button class="icon-button" onclick="displayDashboard()" title="Dashboard">
-                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="dashboard icon" class="icon-image">
-            </button>
-            <a href="{{ url_for('schedules.schedules_page') }}" class="icon-button" title="Schedules">
-                <img src="{{ url_for('static', filename='icons/playlist.png') }}" alt="schedules icon" class="icon-image">
-            </a>
-            <a href="{{ url_for('main.photo_management') }}" class="icon-button" title="Photos">
-                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="photo management icon" class="icon-image">
-            </a>
-        </div>
+        <!-- Plugins Section -->
+        <section class="plugins-section">
+            <div class="section-header">
+                <h2>Plugins</h2>
+                <span class="plugin-count">{{ plugins|length }} available</span>
+            </div>
+            <div class="plugins-grid">
+                {% for plugin in plugins %}
+                <a href="{{ url_for('plugin.plugin_page', plugin_id=plugin.id) }}" class="plugin-card" title="{{ plugin.display_name }}">
+                    <div class="plugin-icon">
+                        <img src="{{ url_for('plugin.image', plugin_id=plugin.id, filename='icon.png') }}" alt="{{ plugin.display_name }} icon">
+                    </div>
+                    <div class="plugin-info">
+                        <div class="plugin-name">{{ plugin.display_name }}</div>
+                        <div class="plugin-status">Ready</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Quick Actions Section -->
+        <section class="actions-section">
+            <div class="section-header">
+                <h2>Quick Actions</h2>
+            </div>
+            <div class="actions-grid">
+                <a href="{{ url_for('schedules.schedules_page') }}" class="action-card">
+                    <div class="action-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                    <div class="action-info">
+                        <div class="action-title">Schedules</div>
+                        <div class="action-subtitle">Manage display schedules</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('main.photo_management') }}" class="action-card">
+                    <div class="action-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21,15 16,10 5,21"></polyline>
+                        </svg>
+                    </div>
+                    <div class="action-info">
+                        <div class="action-title">Photos</div>
+                        <div class="action-subtitle">Upload and manage images</div>
+                    </div>
+                </a>
+                <button class="action-card" onclick="displayDashboard()">
+                    <div class="action-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="m19.4,15a1.65,1.65,0,0,0,.33,1.82l.06.06a2,2,0,0,1,0,2.83,2,2,0,0,1-2.83,0l-.06-.06a1.65,1.65,0,0,0-1.82-.33,1.65,1.65,0,0,0-1,1.51V21a2,2,0,0,1-2,2,2,2,0,0,1-2-2v-.09A1.65,1.65,0,0,0,9,19.4a1.65,1.65,0,0,0-1.82.33l-.06.06a2,2,0,0,1-2.83,0,2,2,0,0,1,0-2.83l.06-.06a1.65,1.65,0,0,0,.33-1.82,1.65,1.65,0,0,0-1.51-1H3a2,2,0,0,1-2-2,2,2,0,0,1,2-2h.09A1.65,1.65,0,0,0,4.6,9a1.65,1.65,0,0,0-.33-1.82l-.06-.06a2,2,0,0,1,0-2.83,2,2,0,0,1,2.83,0l.06.06a1.65,1.65,0,0,0,1.82.33H9a1.65,1.65,0,0,0,1-1.51V3a2,2,0,0,1,2-2,2,2,0,0,1,2,2v.09a1.65,1.65,0,0,0,1,1.51,1.65,1.65,0,0,0,1.82-.33l.06-.06a2,2,0,0,1,2.83,0,2,2,0,0,1,0,2.83l-.06.06a1.65,1.65,0,0,0-.33,1.82V9a1.65,1.65,0,0,0,1.51,1H21a2,2,0,0,1,2,2,2,2,0,0,1-2,2h-.09a1.65,1.65,0,0,0-1.51,1z"></path>
+                        </svg>
+                    </div>
+                    <div class="action-info">
+                        <div class="action-title">Settings</div>
+                        <div class="action-subtitle">Configure display settings</div>
+                    </div>
+                </button>
+            </div>
+        </section>
     </div>
     
     <!-- Success/Error Modal -->
     {% include 'response_modal.html' %}
-<body>
+</body>
 </html>
