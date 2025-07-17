@@ -1,188 +1,129 @@
 # Troubleshooting
 
-## InkyPi Service not running
+This document contains solutions to common issues you might encounter while using InkyPi.
 
-Check the status of the service:
-```bash
-sudo systemctl status inkypi.service
-```
+## Display Issues
 
-If the service is running, this should output `Active: active (running)`:
-```bash
-● inkypi.service - InkyPi App
-     Loaded: loaded (/etc/systemd/system/inkypi.service; enabled; preset: enabled)
-     Active: active (running) since Sun 2024-12-22 20:48:53 GMT; 28s ago
-   Main PID: 48333 (bash)
-      Tasks: 6 (limit: 166)
-        CPU: 6.333s
-     CGroup: /system.slice/inkypi.service
-             ├─48333 bash /usr/local/bin/inkypi -d
-             └─48336 python -u /home/pi/inky/src/inkypi.py -d
-```
+### Display Not Updating
 
-If the service is not running, check the logs for any errors or issues.
+**Symptoms**: The e-ink display shows the same image and doesn't update when you trigger a refresh.
 
-## Debugging
+**Possible Causes & Solutions**:
 
-View the latest logs for the InkyPi service:
-```bash
-journalctl -u inkypi -n 100
-```
+1. **Service not running**:
+   ```bash
+   sudo systemctl status inkypi.service
+   ```
+   If inactive, start it:
+   ```bash
+   sudo systemctl start inkypi.service
+   ```
 
-Tail the logs:
-```bash
-journalctl -u inkypi -f
-```
+2. **Permission issues with display hardware**:
+   ```bash
+   sudo usermod -a -G spi,gpio,i2c pi
+   ```
+   Then restart the service.
 
-## Restart the InkyPi Service
+3. **Check logs for errors**:
+   ```bash
+   sudo journalctl -u inkypi.service -f
+   ```
 
-```bash
-sudo systemctl restart inkypi.service
-```
+### Display Shows Corrupted Image
 
+**Symptoms**: The display shows garbled or partially corrupted content.
 
-## Run InkyPi Manually
+**Solutions**:
+- Restart the service:
+  ```bash
+  sudo systemctl restart inkypi.service
+  ```
+- Check if the display is properly connected
+- Verify the correct display type is configured in settings
 
-If the InkyPi service is not running, try manually running the startup script to diagnose. This should output the logs to the terminal and make it easier to troubleshoot any errors:
+## Network Issues
 
-```bash
-sudo /usr/local/bin/inkypi -d
-```
+### Cannot Access Web Interface
 
-## API Key not configured
+**Symptoms**: Unable to reach the web interface from your browser.
 
-Some plugins require API Keys to be configured in order to run. These need to be configured in a .env file at the root of the project. See [API Keys](api_keys.md) for details.
+**Solutions**:
 
-## Clock/Sunset/Sunrise Time is wrong
+1. **Find the Pi's IP address**:
+   ```bash
+   hostname -I
+   ```
 
-If the displayed time is incorrect, your timezone setting may not be configured. You can update this in the Settings page of the Web UI.
+2. **Check if the service is running**:
+   ```bash
+   sudo systemctl status inkypi.service
+   ```
 
-## Failed to retrieve weather data
+3. **Check firewall settings** (if applicable):
+   ```bash
+   sudo ufw status
+   ```
 
-```bash
-Failed to retrieve weather data
-ERROR - root - Failed to retrieve weather data: b'{"cod":401, "message": "Please note that using One Call 3.0 requires a separate subscription to the One Call by Call plan. Learn more here https://openweathermap.org/price. If you have a valid subscription to the One Call by Call plan, but still receive this error, then please see https://openweathermap.org/faq#error401 for more info."}'
-```
+## Plugin Issues
 
-InkyPi uses the One Call API 3.0 API which requires a subscription but is free for up to 1,000 requests a day. See [API Keys](api_keys.md) for instructions.
+### Plugin Not Appearing
 
-## No EEPROM detected
+**Symptoms**: A plugin doesn't show up in the web interface.
 
-```bash
-RuntimeError: No EEPROM detected! You must manually initialise your Inky board.
-```
+**Solutions**:
+- Verify the plugin directory contains a `plugin-info.json` file
+- Check the plugin configuration is valid
+- Restart the service:
+  ```bash
+  sudo systemctl restart inkypi.service
+  ```
 
-InkyPi uses the [inky python library](https://github.com/pimoroni/inky) from Pimoroni to detect and interface with Inky displays. However, the auto-detect functionality does not work on some boards, which requires manual setup (see [Manual Setup](https://github.com/pimoroni/inky?tab=readme-ov-file#manual-setup)).
+### Plugin Errors
 
-Manually import and instantiate the correct Inky module in src/display_manager.py. For the 7.3 Inky Impression, modify the file as follows:
-```
-@@ -1,5 +1,5 @@
- import os
--from inky.auto import auto
-+from inky.inky_ac073tc1a import Inky
- from utils.image_utils import resize_image, change_orientation
- from plugins.plugin_registry import get_plugin_instance
+**Symptoms**: Plugin shows error messages when trying to update.
 
-@@ -8,7 +8,7 @@ class DisplayManager:
-     def __init__(self, device_config):
-         """Manages the display and rendering of images."""
-         self.device_config = device_config
--        self.inky_display = auto()
-+        self.inky_display = Inky()
-         self.inky_display.set_border(self.inky_display.BLACK)
-```
+**Solutions**:
+- Check the plugin's settings and required API keys
+- Verify internet connectivity for plugins that fetch external data
+- Check logs for detailed error messages:
+  ```bash
+  sudo journalctl -u inkypi.service -f
+  ```
 
-Then restart the inkypi service:
-```
-sudo systemctl restart inkypi.service
-```
+## General Issues
 
-## Waveshare e-Paper EPD Devices
+### High CPU Usage
 
-### Missing modules
+**Symptoms**: The Raspberry Pi becomes slow or unresponsive.
 
-Ensure that the necessary modeules are available in the python environment. Waveshare requires:
+**Solutions**:
+- Monitor system resources:
+  ```bash
+  top
+  ```
+- Increase the refresh interval in plugin settings
+- Consider reducing image resolution if performance is poor
 
-- gpiozero
-- lgpio
-- RPi.GPIO
+### SD Card Issues
 
-in addition to the libraries that are normally installed for Inky screens.
+**Symptoms**: Frequent crashes, corruption, or "read-only" filesystem errors.
 
-### Screen not updating
+**Solutions**:
+- Use a high-quality SD card (Class 10 or better)
+- Check filesystem:
+  ```bash
+  sudo fsck /dev/mmcblk0p2
+  ```
+- Consider backing up and reflashing if corruption persists
 
-Verify SPI configuration using `ls /dev/sp*`.  There should be two entries for _spidev0.0_ and _spidev0.1_.  
+## Getting Help
 
-If only the first is visible, check _/boot/firmware/config.txt_. The regular install of InkyPi adds `dtoverlay=spi0-0cs` to the this file.  If it is there, either delete it (for default behaviour) or specifically add `dtoverlay=spi0-2cs`.
+If you continue to experience issues:
 
-### ERROR: Failed to download Waveshare driver
-
-The installation script attempts to fetch the EPD driver library based on the -W argument provided. Please double-check that:
-- You’ve entered the correct display model.
-- The corresponding driver file exists in the [waveshare e-Paper github repository](https://github.com/waveshareteam/e-Paper/tree/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd).
-
-Note: Some displays, such as the epd4in0e, are not included in the main library path above. Instead, they may be located under the [E-paper_Seperate_Program](https://github.com/waveshareteam/e-Paper/tree/master/E-paper_Separate_Program) path. If your model is there, look under:
-```bash
-/RaspberryPi_JetsonNano/python/lib/waveshare_epd/
-```
-
-In this case, you’ll need to manually copy both the epdXinX.py and epdconfig.py files into:
-```bash
-InkyPi/src/display/waveshare_epd/
-```
-Once the files are in place, rerun the installation script. The script will detect the driver locally and skip the download step.
-
-## Today's Newspaper not found
-
-Daily newspaper front pages are sourced from [Freedom Forum](https://frontpages.freedomforum.org/gallery). The list of available newspapers may change periodically. InkyPi maintains an up-to-date list of newspapers provided by Freedom Forum, but there may be times when the list becomes outdated.
-
-If you encounter this error, please feel free to open an Issue, including the name of the newspaper you were trying to access, and we'll work to update the list.
-
-Also consider supporting the important work of Freedom Forum, an organization dedicated to promoting and protecting free press and the First Amendment: https://www.freedomforum.org/take-action/
-
-## Known Issues during Pi Zero W Installation
-
-Due to limitations with the Pi Zero W, there are some known issues during the InkyPi installation process. For more details and community discussion, refer to this [GitHub Issue](https://github.com/fatihak/InkyPi/issues/5).
-
-### Pip Installation Error
-
-#### Error message
-```bash
-WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ProtocolError('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))':
-```
-
-#### Recommended solution
-Manually install the required pip packages in the inkypi virtual environment:
-```bash
-source "/usr/local/inkypi/venv_inkypi/bin/activate"
-pip install -r install/requirements.txt
-deactivate
-```
-Restart the inkypi service to apply the changes:
-```bash
-sudo systemctl restart inkypi.service
-```
-
-### Numpy ImportError
-
-#### Error message
-```bash
-ImportError: Error importing numpy: you should not try to import numpy from
-its source directory; please exit the numpy source tree, and relaunch
-your python interpreter from there.
-```
-
-#### Recommended solution
-To resolve this issue, manually reinstall the Pillow library in the inkypi virtual environment:
-```bash
-sudo su
-source "/usr/local/inkypi/venv_inkypi/bin/activate"
-pip uninstall Pillow
-pip install Pillow
-deactivate
-```
-
-Restart the inkypi service to apply the changes:
-```bash
-sudo systemctl restart inkypi.service
-```
+1. Check the [GitHub Issues](https://github.com/mattdrummond/InkyPi/issues) page
+2. Create a new issue with:
+   - Your hardware setup
+   - Steps to reproduce the problem
+   - Relevant log output
+   - Screenshots if applicable

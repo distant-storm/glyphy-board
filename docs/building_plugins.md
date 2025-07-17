@@ -8,7 +8,7 @@ This guide walks you through the process of creating a new plugin for InkyPi.
 - Create a new directory named after your plugin. The directory name will be the `id` of your plugin and should be all lowercase with no spaces. Example:
 
   ```bash
-  mkdir plugins/clock
+  mkdir plugins/my_plugin
   ```
 
 ### 2. Create a Python File and Class for the Plugin
@@ -22,41 +22,43 @@ This guide walks you through the process of creating a new plugin for InkyPi.
     - Images can be generated via the Pillow library or rendered from HTML and CSS file, see [See Generating Images by Rendering HTML and CSS](#generating-images-by-rendering-html-and-css) for details.
     - Return a single `PIL.Image` object to be displayed
     - If there are any issues (e.g., missing configuration options or API keys), raise a `RuntimeError` exception with a clear and concise message to be displayed in the web UI.
-- (Optional) If your settings template requires any additional variables, override the default `generate_settings_template` function
-    - In this function, call `BasePlugin`'s `generate_settings_template` method to retrieve the default template parameters. Add any extra key-value pairs needed for your template and return the updated dictionary.
-    - To add the predefined style settings (see the Weather and AI Text plugins in the Web UI) to your plugin settings page, set `style_settings` to True.
-    - Example:
-        ```python
-        def generate_settings_template(self):
-            template_params = super().generate_settings_template()
-            template_params['custom_template_variable'] = self.get_custom_variable()
-            template_params['style_settings'] = True
-            return template_params
-        ```
-- (Optional) If your plugin needs to cache or store data across refreshes, you can manage this within the `generate_image` function.
-    - For example, you can retrieve and update values as follows:
-        ```python
-        def generate_image(self, settings, device_config):
-            # retrieve stored value with a default
-            cached_index = settings.get("index", 0)
-
-            # update value for next refresh
-            settings["index"] = settings["index"] + 1
-        ```
+- To add the predefined style settings (see the Newspaper plugin in the Web UI) to your plugin settings page, set `style_settings` to True.
 
 ### 3. Create a Settings Template (Optional)
 
-If your plugin requires user configuration through the web UI, you’ll need to define a settings template.
-- In your plugin directory, create a `settings.html` file
-- Inside this file, define HTML input elements for any settings required by your plugin:
-    - The `name` attribute of each input element will be passed as keys in the `settings` argument of the `generate_image` function
-- Any template variables added in `generate_settings_template` function will be accessible in the settings template. This is useful for dynamic content, such as populating options in a dropdown menu.
+- If your plugin requires user input to function, create an HTML file named `settings.html` in your plugin's directory.
+- The settings template is rendered inside the existing web UI layout, so you only need to define form inputs.
+- Use the following form input structure (the exact name matters for settings to be saved and loaded correctly)
+    - **HTML Input:**
+        ```html
+        <input type="text" id="textInput" name="textInput" />
+        ```
+    - **Access in plugin class:**
+        ```python
+        text_value = settings.get("textInput", "default_value")
+        ```
+- Use the following additional form input types:
+    - **Checkbox:** Use `class="toggle-checkbox"` for styled toggle switches.
+        ```html
+        <input type="checkbox" id="checkboxInput" name="checkboxInput" class="toggle-checkbox" value="false" onclick="this.value = this.checked ? 'true' : 'false'">
+        ```
+    - **File Upload:** Use `class="file-upload-input"` for styled file inputs.
+        ```html
+        <input type="file" id="fileInput" name="fileInput" class="file-upload-input">
+        ```
+    - **Select Dropdown:** Standard `<select>` elements work well.
+        ```html
+        <select id="selectInput" name="selectInput">
+            <option value="option1">Option 1</option>
+            <option value="option2">Option 2</option>
+        </select>
+        ```
 - Ensure the settings template visually matches the style of the existing web UI and other plugin templates for consistency.
 - When a plugin is added to a playlist, editing the plugin instance should prepopulate the form with the current settings, and saving changes should update the settings accordingly. 
 
 ### 4. Add an Icon for Your Plugin
 
-- Create an `icon.png` file in your plugin’s directory. This will be the icon displayed in the web UI.
+- Create an `icon.png` file in your plugin's directory. This will be the icon displayed in the web UI.
     - Ensure the icon visually matches the style of existing icons in the project.
 
 ### 5. Register Your Plugin
@@ -65,9 +67,9 @@ If your plugin requires user configuration through the web UI, you’ll need to 
 - Add an object for your plugin using the following structure:
     ```json
     {
-        "display_name": "Clock",    # The name shown in the web UI for the plugin.
-        "id": "clock",              # A unique identifier for the plugin (use lowercase and avoid spaces)
-        "class": "Clock"            # The name of your plugin’s Python class.
+        "display_name": "My Plugin",    # The name shown in the web UI for the plugin.
+        "id": "my_plugin",              # A unique identifier for the plugin (use lowercase and avoid spaces)
+        "class": "MyPlugin"             # The name of your plugin's Python class.
     }
     ```
 - Plugins will be loaded on startup if the folder contains a `plugin-info.json`
@@ -88,7 +90,7 @@ If your plugin requires user configuration through the web UI, you’ll need to 
 
 ## Example Directory Structure
 
-Here’s how your plugin directory should look:
+Here's how your plugin directory should look:
 
 ```
 plugins/{plugin_id}/
@@ -130,26 +132,54 @@ For more complex plugins or dashboards that display dynamic content, you can gen
 ### Using `render_image`
 You can generate an image by calling the `BasePlugin`'s `render_image` function, which accepts the following arguments:
 - `dimensions` (tuple)                  The width and height of the generated image.
-- `html_file` (str)                     Name of the HTML file to render, located in the `render/` directory.
-- `css_file` (str, optional)            Name of the CSS file in the `render/` directory.
-- `template_params`(dict, optional)     A dictionary of values to be passed into the Jinja template.
+- `template_name` (str)                 The name of the HTML template to render.
+- `template_params` (dict)              Variables to pass to the template.
+- `timeout_ms` (int, optional)          Timeout for image generation (default: 10 seconds).
 
-### Defining HTML and CSS files
-- Place your HTML and CSS files in the `render/` subdirectory, as `render_image` looks for them there.
-- Your HTML file should extend `BasePlugin`'s `plugin.html` and define its content like this:
-```
-{% extends "plugin.html" %}
+### How it Works
 
-{% block content %}
-<!-- Your content here -->
-{% endblock %}
-```
-- The `plugin.html` base template includes all font faces found in the `static/fonts/` directory, making them available for use in your templates
-- The base template also handles style options such as text color, background image or color, margin and frame settings. To apply these styles, pass the `settings` parameter from the `generate_image` function as part of template_params argument with the `plugin_settings` key.
-
-For reference, see the Weather and AI Text plugins.
-
-### Behind the Scenes
-1. The `render_image` function renders the HTML template using the Jinja2 library.
+1. The HTML template is rendered with the provided variables using Jinja2 templating.
 2. It then calls the `take_screenshot_html` function in `image_utils.py`.
 3. This function uses the Chromium Browser in headless mode to load the HTML file and capture a screenshot.
+4. The resulting screenshot is returned as a PIL Image object.
+
+For reference, see the Newspaper plugin.
+
+### Example
+
+Here's an example plugin that generates an image from HTML:
+
+```python
+from plugins.base_plugin.base_plugin import BasePlugin
+
+class MyPlugin(BasePlugin):
+    def generate_image(self, settings, device_config):
+        dimensions = device_config.get_resolution()
+        
+        template_params = {
+            "title": settings.get("title", "Default Title"),
+            "background_color": settings.get("background_color", "#ffffff")
+        }
+        
+        return self.render_image(dimensions, "template.html", template_params)
+```
+
+```html
+<!-- plugins/my_plugin/render/template.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: {{ background_color }};
+            text-align: center;
+            padding: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ title }}</h1>
+</body>
+</html>
+```

@@ -1,59 +1,51 @@
 
-# Storing API Keys
+# API Keys
 
-Certain plugins, like the AI Image plugin, require API credentials to function. These credentials must be stored in a .env file located at the root of the project. Once you have your API token, follow these steps:
+This document outlines the API keys required for various InkyPi plugins and how to configure them.
 
-1. SSH into your Raspberry Pi and navigate to the InkyPi directory:
-    ```bash
-    cd InkyPi
-    ```
-2. Create or edit the .env file using your preferred text editor (e.g., vi, nano):
-    ```bash
-    vi .env
-    ```
-3. Add your API keys following format, with one line per key:
-    ```
-    PLUGIN_KEY=your-key
-    ```
-4. Save the file and exit the editor
+## Environment Variables
 
-## Open AI Key
+API keys are stored in a `.env` file in the root directory of the project. Create this file if it doesn't exist:
 
-Required for the AI Image and AI Text Plugins
+```bash
+touch .env
+```
 
-- Login or create an account on the [Open AI developer platform](https://platform.openai.com/docs/overview)
-- Crate a secret key from the API Keys tab in the Settings page
-    - It is recommended to set up Auto recharge (found in the "Billing" tab)
-    - Optionally set a Budge Limit in the Limits tab
-- Store your key in the .env file with the key OPEN_AI_SECRET
-    ```
-    OPEN_AI_SECRET=your-key
-    ```
+Add your API keys to this file using the format shown below for each service.
 
-## Open Weather Map Key
+## Open AI API Key
 
-Required for the Weather Plugin
+Required for the AI plugins (if available)
 
-- Login or create an account on [OpenWeatherMap](https://home.openweathermap.org/users/sign_in)
-    - Verify your email after signing up
-- The weather plugin uses the [One Call API 3.0](https://openweathermap.org/price) which requires a subscription but is free for up to 1,000 requests per day.
-    - Subscribe at [One Call API 3.0 Subscription](https://home.openweathermap.org/subscriptions/billing_info/onecall_30/base?key=base&service=onecall_30)
-    - Follow the instructions to complete the subscription.
-    - Navigate to [Your Subscriptions](https://home.openweathermap.org/subscriptions) and set "Calls per day (no more than)" to 1,000 to avoid exceeding the free limit
-- Store your api key in the .env file with the key OPEN_WEATHER_MAP_SECRET
-    ```
-    OPEN_WEATHER_MAP_SECRET=your-key
-    ```
+- Sign up or log in to [OpenAI](https://platform.openai.com/signup)
+- Navigate to [API Keys](https://platform.openai.com/api-keys)
+- Click "Create new secret key"
+- Give it a name and copy the key
+- Store your api key in the .env file with the key OPEN_AI_SECRET
 
-## NASA Astronomy Picture Of the Day key
+```
+OPEN_AI_SECRET=your-key
+```
 
-Required for the APOD Plugin
+## Google Calendar API
 
-- Request an API key on [NASA APIs](https://api.nasa.gov/)
-   - Fill your First name, Last name, and e-mail address
-- The APOD plugin uses the [NASA APIs](https://api.nasa.gov/)
-   - Free for up to 1,000 requests per hour
-- Store your api key in the .env file with the key NASA_SECRET
-    ```
-    NASA_SECRET=your-key
-    ```
+Required for the Calendar Plugin (if available)
+
+Instructions for setting up Google Calendar API access will be provided when the calendar plugin is available.
+
+## Configuration
+
+After adding API keys to your `.env` file:
+
+1. Restart the InkyPi service:
+   ```bash
+   sudo systemctl restart inkypi.service
+   ```
+
+2. The plugins should now be able to access their respective APIs.
+
+## Security Notes
+
+- Never commit your `.env` file to version control
+- Keep your API keys secure and don't share them publicly
+- Regularly rotate your API keys for security
