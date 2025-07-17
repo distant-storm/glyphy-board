@@ -3,6 +3,7 @@ import json
 import logging
 
 from utils.image_utils import resize_image, change_orientation, apply_image_enhancement
+from utils.app_utils import create_writable_config_if_needed
 from display.inky_display import InkyDisplay
 from display.waveshare_display import WaveshareDisplay
 
@@ -25,7 +26,8 @@ class DisplayManager:
             ValueError: If an unsupported display type is specified.
         """
         
-        self.device_config = device_config
+        # Check and ensure we have a writable config before proceeding
+        self.device_config = create_writable_config_if_needed(device_config)
      
         display_type = device_config.get_config("display_type", default="inky")
 
@@ -60,7 +62,39 @@ class DisplayManager:
         
         # Save the image
         logger.info(f"Saving image to {self.device_config.current_image_file}")
-        image.save(self.device_config.current_image_file)
+        try:
+            # Ensure the image is in a compatible mode for PNG
+            if image.mode in ('RGBA', 'LA', 'P'):
+                # These modes are fine for PNG, but let's be explicit about transparency handling
+                image.save(self.device_config.current_image_file, format='PNG')
+            elif image.mode in ('CMYK', 'YCbCr'):
+                # Convert unsupported modes to RGB before saving
+                logger.info(f"Converting image from {image.mode} to RGB for PNG compatibility")
+                rgb_image = image.convert('RGB')
+                rgb_image.save(self.device_config.current_image_file, format='PNG')
+            else:
+                # Standard modes (RGB, L, etc.) should work fine
+                image.save(self.device_config.current_image_file, format='PNG')
+        except PermissionError as e:
+            logger.error(f"Permission denied saving image to {self.device_config.current_image_file}: {e}")
+            raise RuntimeError(f"Cannot save image due to permission error. Check file ownership and permissions.")
+        except OSError as e:
+            if "image has wrong mode" in str(e) or "cannot write mode" in str(e):
+                logger.error(f"Image mode error: {e}. Attempting conversion to RGB.")
+                try:
+                    # Convert to RGB and try again
+                    rgb_image = image.convert('RGB')
+                    rgb_image.save(self.device_config.current_image_file, format='PNG')
+                    logger.info("Successfully saved image after converting to RGB mode")
+                except Exception as retry_error:
+                    logger.error(f"Failed to save image even after RGB conversion: {retry_error}")
+                    raise RuntimeError(f"Image save failed: {retry_error}")
+            else:
+                logger.error(f"OS error saving image: {e}")
+                raise RuntimeError(f"Failed to save image: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error saving image: {e}")
+            raise RuntimeError(f"Image save failed: {e}")
 
         # Resize and adjust orientation
         image = change_orientation(image, self.device_config.get_config("orientation"))

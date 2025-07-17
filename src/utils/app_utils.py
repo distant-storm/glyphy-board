@@ -1,6 +1,9 @@
 import logging
 import os
 import socket
+import subprocess
+import tempfile
+import logging
 
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -169,3 +172,57 @@ def handle_request_files(request_files, form_data={}):
         else:
             file_location_map[key] = file_path
     return file_location_map
+
+def create_writable_config_if_needed(config):
+    """
+    Check if the current_image_file path is writable, and if not, 
+    create a temporary path and update the config.
+    
+    Args:
+        config: The device config object
+        
+    Returns:
+        The config object (potentially modified with new current_image_file path)
+    """
+    logger = logging.getLogger(__name__)
+    
+    # Check if the original path is writable
+    original_path = Path(config.current_image_file)
+    
+    # Check if directory exists and is writable
+    if not original_path.parent.exists():
+        try:
+            original_path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Created directory: {original_path.parent}")
+        except PermissionError:
+            logger.warning(f"Cannot create directory {original_path.parent} due to permissions")
+    
+    # Check if we can write to the directory and file
+    directory_writable = os.access(original_path.parent, os.W_OK)
+    file_writable = True
+    
+    if original_path.exists():
+        file_writable = os.access(original_path, os.W_OK)
+    
+    if not directory_writable or not file_writable:
+        # Create a temporary directory for the current image
+        temp_dir = Path(tempfile.gettempdir()) / "glyphy-board"
+        temp_dir.mkdir(exist_ok=True)
+        temp_image_file = temp_dir / "current_image.png"
+        
+        # Override the current_image_file path
+        original_file = config.current_image_file
+        config.current_image_file = str(temp_image_file)
+        
+        logger.warning(f"Original image file not writable: {original_file}")
+        logger.info(f"Using temporary image file: {temp_image_file}")
+        
+        # Try to create the temp file to ensure it's writable
+        try:
+            temp_image_file.touch()
+            logger.info(f"Successfully created temporary image file")
+        except Exception as e:
+            logger.error(f"Failed to create temporary image file: {e}")
+            raise RuntimeError(f"Cannot create writable image file: {e}")
+    
+    return config
