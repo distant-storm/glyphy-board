@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Test script for fact.py
 Tests the fact script functionality without requiring an actual API key

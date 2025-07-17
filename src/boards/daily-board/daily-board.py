@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Daily Board Script - Simple test board for scheduler
 """

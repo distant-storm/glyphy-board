@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 PiJuice Diagnostic Script
 Helps identify available PiJuice methods and troubleshoot API issues

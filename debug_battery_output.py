@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Debug script to capture and analyze PiJuice utility output
 """

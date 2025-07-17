@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Fact Script
 Fetches random facts from API Ninjas

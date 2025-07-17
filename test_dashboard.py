@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Standalone test version of the dashboard
 """

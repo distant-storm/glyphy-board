@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from pijuice import PiJuice
 from datetime import datetime
 import logging
