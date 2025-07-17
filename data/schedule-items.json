@@ -29,13 +29,23 @@
     "created_at": "2025-07-05T13:21:43.274558"
   },
   {
-    "id": "1751735334738",
+    "id": "1752614375926",
     "schedule_id": "1751731010477",
     "board_name": "photo-album",
     "schedule_type": "relative",
-    "created_at": "2025-07-05T18:08:54.738588",
+    "created_at": "2025-07-15T22:19:35.926530",
     "pattern_type": "daily",
-    "start_time": "18:08",
-    "end_time": "18:30"
+    "start_time": "10:00",
+    "end_time": "23:59"
+  },
+  {
+    "id": "1752614396678",
+    "schedule_id": "1751731010477",
+    "board_name": "dashboard",
+    "schedule_type": "relative",
+    "created_at": "2025-07-15T22:19:56.678446",
+    "pattern_type": "daily",
+    "start_time": "00:00",
+    "end_time": "06:00"
   }
 ]
