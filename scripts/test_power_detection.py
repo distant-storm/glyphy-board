@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Test script to verify power detection with PiJuice
 """

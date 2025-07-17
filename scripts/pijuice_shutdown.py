@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 PiJuice Shutdown Script
 Manual shutdown script that properly configures PiJuice and shuts down the Pi

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Test script for weather_info.py
 Demonstrates the expected JSON structure and tests the script

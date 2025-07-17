@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Power Status Board Script - Displays power source and battery information
 """

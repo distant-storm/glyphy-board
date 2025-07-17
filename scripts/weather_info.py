@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Weather Info Script
 Fetches weather data from Open-Meteo API for Stockport

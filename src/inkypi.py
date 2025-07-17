@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # set up logging
 import os, logging.config
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), 'config', 'logging.conf'))

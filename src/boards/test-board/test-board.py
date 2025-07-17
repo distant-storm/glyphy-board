@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test Board Script - Simple test board for scheduler
 """

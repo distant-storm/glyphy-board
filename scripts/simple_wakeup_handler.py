@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Simple Wakeup Handler for Raspberry Pi with PiJuice
 Handles both battery and mains power scenarios
