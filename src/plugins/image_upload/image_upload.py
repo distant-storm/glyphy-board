@@ -3,8 +3,6 @@ from PIL import Image, ImageOps, ImageColor
 from io import BytesIO
 import logging
 import os
-import shutil
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -39,34 +37,3 @@ class ImageUpload(BasePlugin):
             background_color = ImageColor.getcolor(settings.get('backgroundColor') or (255, 255, 255), "RGB")
             return ImageOps.pad(image, padded_img_size, color=background_color, method=Image.Resampling.LANCZOS)
         return image
-
-    def save_to_photo_album(self, image_paths):
-        """Save uploaded images to the photo album directory"""
-        if not image_paths:
-            return
-        
-        # Get the photo album directory path
-        photo_album_dir = Path(__file__).parent.parent.parent / "boards" / "photo-album" / "photos"
-        
-        # Ensure the directory exists
-        photo_album_dir.mkdir(parents=True, exist_ok=True)
-        
-        saved_count = 0
-        for image_path in image_paths:
-            try:
-                # Get the filename from the path
-                filename = Path(image_path).name
-                
-                # Create the destination path
-                dest_path = photo_album_dir / filename
-                
-                # Copy the file to the photo album directory
-                shutil.copy2(image_path, dest_path)
-                logger.info(f"Saved image to photo album: {filename}")
-                saved_count += 1
-                
-            except Exception as e:
-                logger.error(f"Failed to save image to photo album: {image_path}, error: {e}")
-        
-        if saved_count > 0:
-            logger.info(f"Successfully saved {saved_count} image(s) to photo album")

@@ -129,7 +129,7 @@ def parse_form(request_form):
             request_dict[key] = request_form.getlist(key)
     return request_dict
 
-def handle_request_files(request_files, form_data={}):
+def handle_request_files(request_files, form_data={}, custom_save_dir=None):
     allowed_file_extensions = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}
     file_location_map = {}
     # handle existing file locations being provided as part of the form data
@@ -150,7 +150,14 @@ def handle_request_files(request_files, form_data={}):
 
         file_name = os.path.basename(file_name)
 
-        file_save_dir = resolve_path(os.path.join("static", "images", "saved"))
+        # Use custom save directory if provided, otherwise use default
+        if custom_save_dir:
+            file_save_dir = custom_save_dir
+            # Ensure the custom directory exists
+            os.makedirs(file_save_dir, exist_ok=True)
+        else:
+            file_save_dir = resolve_path(os.path.join("static", "images", "saved"))
+        
         file_path = os.path.join(file_save_dir, file_name)
 
         # Open the image and apply EXIF transformation before saving

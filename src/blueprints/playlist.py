@@ -51,21 +51,14 @@ def add_plugin():
                 return jsonify({"error": "Refresh time is required"}), 400
             refresh_config = {"scheduled": refresh_time}
 
-        plugin_settings.update(handle_request_files(request.files))
-        
-        # Handle photo album saving for image upload plugin
+        # Determine save directory for image files
+        custom_save_dir = None
         if plugin_id == "image_upload" and plugin_settings.get("saveToAlbum") == "true":
-            try:
-                from plugins.plugin_registry import get_plugin_instance
-                plugin_config = device_config.get_plugin(plugin_id)
-                if plugin_config:
-                    plugin = get_plugin_instance(plugin_config)
-                    image_paths = plugin_settings.get("imageFiles[]", [])
-                    if isinstance(image_paths, str):
-                        image_paths = [image_paths]
-                    plugin.save_to_photo_album(image_paths)
-            except Exception as e:
-                logger.error(f"Failed to save to photo album: {e}")
+            # Save directly to photo album directory
+            from pathlib import Path
+            custom_save_dir = str(Path(__file__).parent.parent / "boards" / "photo-album" / "photos")
+        
+        plugin_settings.update(handle_request_files(request.files, custom_save_dir=custom_save_dir))
         
         plugin_dict = {
             "plugin_id": plugin_id,
